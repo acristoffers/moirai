@@ -22,12 +22,14 @@
 # THE SOFTWARE.
 
 from multiprocessing import Pipe
+import time
 
 
 class AbstractProcessHandler(object):
 
     def __init__(self, name, pipe):
         print('Starting %s...' % name)
+        self._last_message = time.time() + 60
         self._pipes = {}
         self._pname = name  # Printable name
         self.set_pipe('parent', pipe)
@@ -51,6 +53,7 @@ class AbstractProcessHandler(object):
     def read_pipe(self, name, blocking=False):
         pipe = self.pipe_for(name)
         if blocking or (not blocking and pipe.poll()):
+            self._last_message = time.time()
             return pipe.recv()
         else:
             return (None, None)
@@ -66,6 +69,7 @@ class AbstractProcessHandler(object):
             if not self.pipes():
                 return 'quit'
         elif cmd == 'connect':
+            print('Connected %s to %s' % (args[0], self._pname))
             self.set_pipe(*args)
             self.send_command(name, 'ok', None)
         else:
@@ -81,6 +85,8 @@ class AbstractProcessHandler(object):
 
     def run(self):
         while True:
+            if time.time() - self._last_message > 1:
+                time.sleep(1)
             for name in self.pipes():
                 result = self._process_command(name)
                 if result == 'quit':

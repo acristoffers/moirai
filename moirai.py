@@ -21,7 +21,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from moirai import moirai
-
 if __name__ == '__main__':
+    from moirai import moirai
     moirai.start()

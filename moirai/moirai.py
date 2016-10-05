@@ -47,7 +47,6 @@ The lifetime thus becomes:
 """
 
 from multiprocessing import Process, Pipe
-from moirai import database, io_manager, tcp
 
 import os
 import signal
@@ -72,9 +71,9 @@ def signal_handler(signal, frame):
         sys.exit(0)
 
 
-def spawn_process(name, process):
+def spawn_process(name):
     pipe_main, pipe_process = Pipe()
-    p = Process(target=main, args=(pipe_process, process), daemon=True)
+    p = Process(target=main, args=(pipe_process, name), daemon=True)
     processes[name] = (p, pipe_main)
     p.start()
 
@@ -85,7 +84,7 @@ def init(name):
     pipe.send(('init', None))
 
 
-def main(pipe, pkg):
+def main(pipe, name):
     # This is the main function of child processes. It will flag this process
     # as child and start the event loop in the correct package. Setting
     # processes to None is only to keep this instance clean, as it doesn't need
@@ -93,6 +92,12 @@ def main(pipe, pkg):
     global processes, process_type
     processes = None
     process_type = 'child'
+    if name == 'database':
+        import moirai.database as pkg
+    elif name == 'io_manager':
+        import moirai.io_manager as pkg
+    elif name == 'tcp':
+        import moirai.tcp as pkg
     pkg.main(pipe)
 
 
@@ -103,17 +108,21 @@ def start():
     print('Starting Moirai...')
     print('To quit press CTRL+C (^C on Macs)')
     # Creates a processs for each module of moirai
-    spawn_process('database', database)
-    spawn_process('io_manager', io_manager)
-    spawn_process('tcp', tcp)
+    spawn_process('database')
+    spawn_process('io_manager')
+    spawn_process('tcp')
     while not all([processes[p][0].is_alive() for p in processes]):
         pass
     init('database')
     init('io_manager')
     init('tcp')
+    last_message = time.time() + 60
     while True:
+        if time.time() - last_message > 1:
+            time.sleep(1)
         for name, (_, pipe) in processes.items():
             if pipe.poll():
+                last_message = time.time()
                 command, args = pipe.recv()
                 if command == 'quit':
                     signal_handler(None, None)
