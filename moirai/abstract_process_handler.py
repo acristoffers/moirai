@@ -52,10 +52,15 @@ class AbstractProcessHandler(object):
 
     def read_pipe(self, name, blocking=False):
         pipe = self.pipe_for(name)
-        if blocking or (not blocking and pipe.poll()):
-            self._last_message = time.time()
-            return pipe.recv()
-        else:
+        try:
+            if blocking or (not blocking and pipe.poll()):
+                self._last_message = time.time()
+                return pipe.recv()
+            else:
+                return (None, None)
+        except EOFError:
+            sname = self._pname
+            print('Communication between %s and %s is closed!' % (name, sname))
             return (None, None)
 
     def _process_command(self, name):
