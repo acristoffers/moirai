@@ -35,6 +35,9 @@ class ProcessHandler(AbstractProcessHandler):
     def __init__(self, pipe):
         super().__init__('I/O Manager', pipe)
 
+    def quit(self):
+        pass
+
     def process_command(self, sender, cmd, args):
         {
             'parent': self.process_from_parent

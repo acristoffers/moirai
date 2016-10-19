@@ -96,6 +96,7 @@ class AbstractProcessHandler(object):
                 result = self._process_command(name)
                 if result == 'quit':
                     print('Shutting down %s...' % self._pname)
+                    self.quit()
                     for name in self.pipes():
                         self.set_pipe(name, None)
                     return

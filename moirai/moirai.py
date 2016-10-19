@@ -103,10 +103,12 @@ def main(pipe, name):
 
 def start():
     global processes, connected_pipes
+
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
     print('Starting Moirai...')
     print('To quit press CTRL+C (^C on Macs)')
+
     # Creates a processs for each module of moirai
     spawn_process('database')
     spawn_process('io_manager')
