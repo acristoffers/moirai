@@ -48,6 +48,7 @@ The lifetime thus becomes:
 
 from multiprocessing import Process, Pipe
 
+import hashlib
 import os
 import signal
 import sys
@@ -102,7 +103,7 @@ def main(pipe, name):
 
 
 def start():
-    global processes, connected_pipes
+    global processes
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
@@ -113,12 +114,32 @@ def start():
     spawn_process('database')
     spawn_process('io_manager')
     spawn_process('tcp')
+
     while not all([processes[p][0].is_alive() for p in processes]):
         pass
-    init('database')
-    init('io_manager')
-    init('tcp')
+
+    # parses command line arguments
+    has_cmd = False
+    for arg in sys.argv:
+        if arg.startswith('--set-password='):
+            pswd = arg.split('=')[-1]
+            if len(pswd) == 0:
+                pswd = None
+            else:
+                h = hashlib.sha512()
+                h.update(bytes(pswd, 'utf-8'))
+                pswd = h.hexdigest()
+            print("Setting password to %s" % pswd)
+            has_cmd = True
+            processes['database'][1].send(('settings_set', ('password', pswd)))
+    if has_cmd:
+        signal_handler(None, None)
+    else:
+        init('database')
+        init('io_manager')
+        init('tcp')
     last_message = time.time() + 60
+
     while True:
         if time.time() - last_message > 1:
             time.sleep(1)
