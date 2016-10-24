@@ -33,7 +33,9 @@ class Settings(Model):
 
     @staticmethod
     def set(key, value):
-        s = Settings()
-        s.key = key
+        s = Settings.where('key', '=', key).first()
+        if not s:
+            s = Settings()
+            s.key = key
         s.value = value
         s.save()
