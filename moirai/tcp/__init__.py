@@ -23,6 +23,12 @@
 
 from moirai.abstract_process_handler import AbstractProcessHandler
 from multiprocessing import Pipe
+import base64
+import errno
+import hashlib
+import random
+import socket
+import string
 
 
 def main(pipe):
@@ -32,8 +38,6 @@ def main(pipe):
 
 def ignore_eagain(f):
     def g(ret, *kargs):
-        import errno
-        import socket
         try:
             return f(*kargs)
         except socket.error as e:
@@ -60,7 +64,6 @@ class ProcessHandler(AbstractProcessHandler):
                 except:
                     pass
             return g
-        import socket
         if self.socket_client:
             ignore(self.socket_client.shutdown)(socket.SHUT_RDWR)
             self.socket_client.close()
@@ -73,7 +76,6 @@ class ProcessHandler(AbstractProcessHandler):
     def process_command(self, sender, cmd, args):
         if cmd == 'init':
             self.request_connection('tcp', 'database')
-            import socket
             self.socket_server = socket.socket()
             self.socket_server.bind(('0.0.0.0', 5000))
             self.socket_server.listen()
