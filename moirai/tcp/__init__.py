@@ -51,9 +51,11 @@ def ignore_eagain(f):
 class ProcessHandler(AbstractProcessHandler):
 
     def __init__(self, pipe):
+        self.tcp_processor = TCPProcessor(self)
         self.socket_client = None
         self.socket_server = None
         self.authed = False
+        self._data = ''
         super().__init__('TCP', pipe)
 
     def quit(self):
@@ -81,30 +83,32 @@ class ProcessHandler(AbstractProcessHandler):
             self.socket_server.listen()
             self.socket_server.setblocking(False)
 
+    # Intended to implement any pre-process routine, like cryptography
+    def preprocess_tcp_command(self, raw):
+        try:
+            return str(raw, 'utf-8')
+        except:
+            return ''
+
     def process_tcp_command(self, raw):
-        raw = str(raw, 'utf-8')
-        cmd, *args = [arg.strip() for arg in raw.split(' ')]
-        cmd = cmd.upper().strip()
-        if cmd == 'AUTH':
-            from base64 import decodebytes
-            pswd = None
-            if len(args) == 1:
-                try:
-                    pswd = str(decodebytes(bytes(args[0], 'utf-8')), 'utf-8')
-                except:
-                    return
-            self.send_command('database', 'settings_get', 'password')
-            cmd, spass = self.read_pipe('database', blocking=True)
-            if spass == pswd:
-                self.socket_client.send(b'AUTH OK\n')
-                self.authed = True
+        raw = self._data + self.preprocess_tcp_command(raw)
+        *rs, self._data = raw.split(';')
+        for raw in rs:
+            cmd, *args = [arg.strip() for arg in raw.split(' ')]
+            if len(cmd.strip()) == 0:
+                continue
+            self.tcp_processor.process_command(cmd, args)
+
+    def tcp_send(self, cmd, args):
+        def b(o):
+            if type(o) == str:
+                return bytes(o, 'utf-8')
             else:
-                self.socket_client.send(b'AUTH FAIL\n')
-                self.socket_client = None
-                self.authed = False
-        if cmd == 'QUIT':
-            if self.authed:
-                self.send_command('parent', 'quit', None)
+                return bytes(o)
+        b64e = base64.encodebytes
+        args = [str(b64e(b(arg)).strip(), 'utf-8') for arg in args]
+        cmd = ("%s %s" % (cmd, ' '.join(args))).strip() + ';'
+        self.socket_client.send(bytes(cmd, 'utf-8'))
 
     def loop(self):
         if not self.socket_client and self.socket_server:
@@ -113,11 +117,74 @@ class ProcessHandler(AbstractProcessHandler):
                 self.socket_client = conn
         if self.socket_client:
             try:
-                self.socket_client.send(b'ALIVE')
+                self.tcp_send('ALIVE', [])
             except:
+                print('Can not send. Closing TCP socket.')
                 self.socket_client = None
                 self.authed = False
                 return
             data = ignore_eagain(self.socket_client.recv)(b'', 4096)
             if len(data) > 0:
-                self.process_tcp_command(data)
+                try:
+                    self.process_tcp_command(data)
+                except Exception as e:
+                    print('Exception: %s' % e)
+
+
+class TCPProcessor(object):
+
+    def __init__(self, handler):
+        self.handler = handler
+        self.salt = None
+
+    def process_command(self, cmd, args):
+        cmd = cmd.lower().strip()
+        args = [arg.strip() for arg in args]
+        args = [base64.decodebytes(bytes(arg, 'utf-8')) for arg in args]
+        args = [str(arg, 'utf-8').strip() for arg in args]
+        method = getattr(self, cmd, None)
+        if method:
+            method(args)
+
+    def auth(self, args):
+        handler = self.handler
+        pswd = None
+        if len(args) > 0:
+            pswd = args[0].lower()
+        handler.send_command('database', 'settings_get', 'password')
+        cmd, spass = handler.read_pipe('database', blocking=True)
+        if spass:
+            sha512 = hashlib.sha512()
+            sha512.update(bytes(spass, 'utf-8') + self.salt)
+            spass = sha512.hexdigest().lower().strip()
+        try:
+            if spass == pswd:
+                handler.tcp_send('AUTH', ['OK'])
+                handler.authed = True
+            else:
+                handler.tcp_send('AUTH', ['FAIL'])
+                handler.socket_client = None
+                handler.authed = False
+        except:
+            print('Can not send. Closing TCP socket.')
+            handler.socket_client = None
+            handler.authed = False
+
+    def changepswd(self, args):
+        handler = self.handler
+        if handler.authed:
+            p = args[0]
+            handler.send_command('database', 'settings_set', ('password', p))
+
+    def gensalt(self, args):
+        handler = self.handler
+        chars = string.ascii_letters + string.digits
+        salt = ''.join(random.choice(chars) for _ in range(512))
+        salt = bytes(salt, 'utf-8')
+        self.salt = salt
+        handler.tcp_send('GENSALT', [salt])
+
+    def quit(self, args):
+        handler = self.handler
+        if handler.authed:
+            handler.send_command('parent', 'quit', None)
