@@ -32,7 +32,11 @@ class AbstractProcessHandler(object):
         self._last_message = time.time() + 60
         self._pipes = {}
         self._pname = name  # Printable name
+        self.sleep = True
         self.set_pipe('parent', pipe)
+
+    def set_sleep(boole):
+        self.sleep = boole
 
     def pipe_for(self, name):
         return self._pipes.get(name, None)
@@ -90,7 +94,7 @@ class AbstractProcessHandler(object):
 
     def run(self):
         while True:
-            if time.time() - self._last_message > 1:
+            if self.sleep and time.time() - self._last_message > 1:
                 time.sleep(1)
             for name in self.pipes():
                 result = self._process_command(name)
