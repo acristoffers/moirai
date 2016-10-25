@@ -177,6 +177,9 @@ class TCPProcessor(object):
         if handler.authed:
             p = args[0]
             handler.send_command('database', 'settings_set', ('password', p))
+            handler.tcp_send('CHANGEPSWD', ['OK'])
+        else:
+            handler.tcp_send('CHANGEPSWD', ['FAIL'])
 
     def gensalt(self, args):
         handler = self.handler
