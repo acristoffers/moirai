@@ -58,7 +58,8 @@ setup(name='moirai',
       install_requires=[
           'orator',
           'appdirs',
-          'ahio'
+          'ahio',
+          'websockify'
       ],
       entry_points={
           'console_scripts': [

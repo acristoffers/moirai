@@ -56,6 +56,7 @@ import time
 
 processes = {}
 process_type = 'main'
+websocket = None
 
 
 def signal_handler(signal, frame):
@@ -66,15 +67,19 @@ def signal_handler(signal, frame):
         # Ask each child process to quit
         for key in processes:
             process, pipe = processes[key]
-            pipe.send(('quit', None))
-            process.join()
+            if key == 'websocket':
+                process.terminate()
+            else:
+                pipe.send(('quit', None))
+                process.join()
         print('Shutting down Moirai...')
         sys.exit(0)
 
 
 def spawn_process(name):
+    as_daemon = name != 'websocket'
     pipe_main, pipe_process = Pipe()
-    p = Process(target=main, args=(pipe_process, name), daemon=True)
+    p = Process(target=main, args=(pipe_process, name), daemon=as_daemon)
     processes[name] = (p, pipe_main)
     p.start()
 
@@ -99,6 +104,8 @@ def main(pipe, name):
         import moirai.io_manager as pkg
     elif name == 'tcp':
         import moirai.tcp as pkg
+    elif name == 'websocket':
+        import moirai.websocket as pkg
     pkg.main(pipe)
 
 
@@ -114,6 +121,7 @@ def start():
     spawn_process('database')
     spawn_process('io_manager')
     spawn_process('tcp')
+    spawn_process('websocket')
 
     while not all([processes[p][0].is_alive() for p in processes]):
         pass
@@ -138,6 +146,7 @@ def start():
         init('database')
         init('io_manager')
         init('tcp')
+        init('websocket')
     last_message = time.time() + 60
 
     while True:

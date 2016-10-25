@@ -78,10 +78,12 @@ class ProcessHandler(AbstractProcessHandler):
     def process_command(self, sender, cmd, args):
         if cmd == 'init':
             self.request_connection('tcp', 'database')
+            self.request_connection('tcp', 'websocket')
             self.socket_server = socket.socket()
             self.socket_server.bind(('0.0.0.0', 5000))
             self.socket_server.listen()
             self.socket_server.setblocking(False)
+            self.send_command('websocket', 'start', None)
 
     # Intended to implement any pre-process routine, like cryptography
     def preprocess_tcp_command(self, raw):
