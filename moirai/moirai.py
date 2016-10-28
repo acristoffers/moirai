@@ -109,8 +109,20 @@ def main(pipe, name):
     pkg.main(pipe)
 
 
+def query_alive(key):
+    global processes
+    pipe = processes[key][1]
+    if pipe.poll():
+        pipe.recv()
+    pipe.send(('alive', None))
+    cmd, __ = pipe.recv()
+    return cmd == 'alive'
+
+
 def start():
     global processes
+
+    ps = ['database', 'io_manager', 'tcp', 'websocket']
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
@@ -118,12 +130,10 @@ def start():
     print('To quit press CTRL+C (^C on Macs)')
 
     # Creates a processs for each module of moirai
-    spawn_process('database')
-    spawn_process('io_manager')
-    spawn_process('tcp')
-    spawn_process('websocket')
+    for p in ps:
+        spawn_process(p)
 
-    while not all([processes[p][0].is_alive() for p in processes]):
+    while not all([query_alive(p) for p in processes]):
         pass
 
     # parses command line arguments
@@ -143,16 +153,15 @@ def start():
     if has_cmd:
         signal_handler(None, None)
     else:
-        init('database')
-        init('io_manager')
-        init('tcp')
-        init('websocket')
+        for p in ps:
+            init(p)
     last_message = time.time() + 60
 
     while True:
         if time.time() - last_message > 1:
             time.sleep(1)
-        for name, (_, pipe) in processes.items():
+        for name in ps:
+            pipe = processes[name][1]
             if pipe.poll():
                 last_message = time.time()
                 command, args = pipe.recv()

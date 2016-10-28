@@ -52,7 +52,10 @@ class AbstractProcessHandler(object):
 
     def send_command(self, to, cmd, args):
         pipe = self.pipe_for(to)
-        pipe.send((cmd, args))
+        if pipe:
+            pipe.send((cmd, args))
+        else:
+            print("No pipe for %s" % to)
 
     def read_pipe(self, name, blocking=False):
         pipe = self.pipe_for(name)
@@ -81,6 +84,8 @@ class AbstractProcessHandler(object):
             print('Connected %s to %s' % (args[0], self._pname))
             self.set_pipe(*args)
             self.send_command(name, 'ok', None)
+        elif cmd == 'alive':
+            self.send_command(name, 'alive', None)
         else:
             self.process_command(name, cmd, args)
 
@@ -95,7 +100,7 @@ class AbstractProcessHandler(object):
     def run(self):
         while True:
             if self.sleep and time.time() - self._last_message > 1:
-                time.sleep(1)
+                time.sleep(0.5)
             for name in self.pipes():
                 result = self._process_command(name)
                 if result == 'quit':
