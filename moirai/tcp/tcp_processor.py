@@ -139,6 +139,12 @@ class TCPProcessor(object):
             return 'OK'
         return 'ERROR'
 
+    def hw_port_mapping_get(self, args):
+        handler = self.handler
+        handler.send_command('database', 'mappings_get', None)
+        __, ms = handler.read_pipe('database', blocking=True)
+        return [json.dumps(m) for m in ms]
+
     def quit(self, args):
         handler = self.handler
         if handler.authed:
