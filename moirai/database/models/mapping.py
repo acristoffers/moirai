@@ -20,11 +20,39 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__author__ = 'Álan Crístoffer'
-__copyright__ = 'Copyright 2016, Álan Crístoffer'
-__credits__ = ['Álan Crístoffer']
-__license__ = 'MIT'
-__version__ = '0.0.3'
-__maintainer__ = 'Álan Crístoffer'
-__email__ = 'acristoffers@gmail.com'
-__status__ = 'In Development'
+from orator import Model
+
+
+def _objectify(m):
+    return {
+        'id': m.driver_id,
+        'alias': m.alias,
+        'digital': m.digital,
+        'input': m.input,
+        'pwm': m.pwm,
+        'value': m.initial_value,
+        'map': m.ahio_id
+    }
+
+
+class Mappings(Model):
+
+    @staticmethod
+    def set(mappings):
+        for m in Mappings.all():
+            m.delete()
+        for d in mappings:
+            m = Mappings()
+            m.driver_id = d['id']
+            m.alias = d['alias']
+            m.digital = d['digital']
+            m.input = d['input']
+            m.pwm = d['pwm']
+            m.initial_value = d['value']
+            m.ahio_id = d['map']
+            m.save()
+
+    @staticmethod
+    def get():
+        ms = Mappings.all()
+        return [_objectify(m) for m in ms]

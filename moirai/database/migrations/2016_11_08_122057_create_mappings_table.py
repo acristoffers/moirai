@@ -20,11 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-__author__ = 'Álan Crístoffer'
-__copyright__ = 'Copyright 2016, Álan Crístoffer'
-__credits__ = ['Álan Crístoffer']
-__license__ = 'MIT'
-__version__ = '0.0.3'
-__maintainer__ = 'Álan Crístoffer'
-__email__ = 'acristoffers@gmail.com'
-__status__ = 'In Development'
+from orator.migrations import Migration
+
+
+class CreateMappingsTable(Migration):
+
+    def up(self):
+        """
+        Run the migrations.
+        """
+        with self.schema.create('mappings') as table:
+            table.increments('id')
+            table.integer('driver_id').unique()
+            table.string('alias').unique()
+            table.boolean('digital')
+            table.boolean('input')
+            table.boolean('pwm')
+            table.float('initial_value')
+            table.integer('ahio_id').unique()
+            table.timestamps(use_current=True)
+
+    def down(self):
+        """
+        Revert the migrations.
+        """
+        self.schema.drop('mappings')

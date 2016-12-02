@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8; -*-
 #
 # Copyright (c) 2016 Álan Crístoffer
@@ -33,6 +32,7 @@ class AbstractProcessHandler(object):
         self._pipes = {}
         self._pname = name  # Printable name
         self.sleep = True
+        self.quitting = False
         self.set_pipe('parent', pipe)
 
     def set_sleep(boole):
@@ -68,11 +68,13 @@ class AbstractProcessHandler(object):
         except EOFError:
             sname = self._pname
             print('Communication between %s and %s is closed!' % (name, sname))
+            del self._pipes[name]
             return (None, None)
 
     def _process_command(self, name):
         cmd, args = self.read_pipe(name)
         if cmd == 'quit':
+            self.quitting = True
             self.send_command(name, 'ok', None)
             return 'quit'
         elif cmd == 'close':
@@ -95,7 +97,8 @@ class AbstractProcessHandler(object):
         if answer == 'ok':
             self.set_pipe(pkg_to, pipe)
         else:
-            raise RuntimeError('Cannot connect with %s' % pkg_to)
+            raise RuntimeError('Can not connect %s with %s' %
+                               (pkg_from, pkg_to))
 
     def run(self):
         while True:

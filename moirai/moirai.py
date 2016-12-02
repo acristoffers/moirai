@@ -47,7 +47,7 @@ The lifetime thus becomes:
 """
 
 from multiprocessing import Process, Pipe
-
+from moirai import decorators
 import hashlib
 import os
 import signal
@@ -55,17 +55,19 @@ import sys
 import time
 
 processes = {}
+ps = ['database', 'io_manager', 'tcp', 'websocket']
 process_type = 'main'
 websocket = None
 
 
 def signal_handler(signal, frame):
+    global ps
     # Only respond to SIGINT if we're on parent process.
     # Child processes will be asked to quit.
     if process_type == 'main':
         print('')
         # Ask each child process to quit
-        for key in processes:
+        for key in reversed(ps):
             process, pipe = processes[key]
             if key == 'websocket':
                 process.terminate()
@@ -109,9 +111,9 @@ def main(pipe, name):
     pkg.main(pipe)
 
 
-def query_alive(key):
+def query_alive(name):
     global processes
-    pipe = processes[key][1]
+    pipe = processes[name][1]
     if pipe.poll():
         pipe.recv()
     pipe.send(('alive', None))
@@ -120,18 +122,19 @@ def query_alive(key):
 
 
 def start():
-    global processes
-
-    ps = ['database', 'io_manager', 'tcp', 'websocket']
+    global processes, ps
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
     print('Starting Moirai...')
     print('To quit press CTRL+C (^C on Macs)')
+    print('Logging to %s' % decorators.log_file_path())
 
     # Creates a processs for each module of moirai
     for p in ps:
         spawn_process(p)
+
+    time.sleep(1)
 
     while not all([query_alive(p) for p in processes]):
         pass
@@ -155,6 +158,7 @@ def start():
     else:
         for p in ps:
             init(p)
+        time.sleep(1)
     last_message = time.time() + 60
 
     while True:

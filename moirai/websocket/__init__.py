@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8; -*-
 #
 # Copyright (c) 2016 Álan Crístoffer
@@ -25,6 +24,7 @@ from moirai.abstract_process_handler import AbstractProcessHandler
 from websockify.websocketproxy import websockify_init
 import sys
 import re
+import websockify
 
 
 def main(pipe):
@@ -34,7 +34,10 @@ def main(pipe):
 
 def run():
     sys.argv = ["websockify", "0.0.0.0:5001", "127.0.0.1:5000"]
-    sys.exit(websockify_init())
+    try:
+        sys.exit(websockify_init())
+    except:
+        sys.exit(0)
 
 
 class ProcessHandler(AbstractProcessHandler):

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8; -*-
 #
 # Copyright (c) 2016 Álan Crístoffer
@@ -22,7 +21,11 @@
 # THE SOFTWARE.
 
 from moirai.abstract_process_handler import AbstractProcessHandler
+from moirai.io_manager.cmd_processor import CommandProcessor
+from moirai.io_manager.hardware_layer import HardwareLayer
+from moirai.decorators import decorate_all_methods, dont_raise, log
 from multiprocessing import Pipe
+import ahio
 
 
 def main(pipe):
@@ -30,22 +33,20 @@ def main(pipe):
     handler.run()
 
 
+@decorate_all_methods(dont_raise)
 class ProcessHandler(AbstractProcessHandler):
 
     def __init__(self, pipe):
+        self.cmd_processor = CommandProcessor(self)
+        self.hw = HardwareLayer(self)
         super().__init__('I/O Manager', pipe)
 
     def quit(self):
         pass
 
     def process_command(self, sender, cmd, args):
-        {
-            'parent': self.process_from_parent
-        }.get(sender, lambda x, y: x)(cmd, args)
-
-    def process_from_parent(self, cmd, args):
-        if cmd == 'init':
-            self.request_connection('io_manager', 'database')
+        if cmd:
+            self.cmd_processor.process_command(sender, cmd, args)
 
     def loop(self):
-        pass
+        self.hw.loop()
