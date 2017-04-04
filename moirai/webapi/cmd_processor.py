@@ -20,28 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from orator.migrations import Migration
+from moirai.decorators import decorate_all_methods, dont_raise, log
 
 
-class CreateMappingsTable(Migration):
+@decorate_all_methods(dont_raise)
+@decorate_all_methods(log)
+class CommandProcessor(object):
 
-    def up(self):
-        """
-        Run the migrations.
-        """
-        with self.schema.create('mappings') as table:
-            table.increments('id')
-            table.integer('driver_id').unique()
-            table.string('alias').unique()
-            table.boolean('digital')
-            table.boolean('input')
-            table.boolean('pwm')
-            table.float('initial_value')
-            table.integer('ahio_id').unique()
-            table.timestamps(use_current=True)
+    def __init__(self, handler):
+        self.handler = handler
 
-    def down(self):
-        """
-        Revert the migrations.
-        """
-        self.schema.drop('mappings')
+    def process_command(self, sender, cmd, args):
+        cmd = cmd.lower().strip()
+        method = getattr(self, cmd, None)
+        if method:
+            ret = method(args)
+            if ret:
+                self.handler.send_command(sender, cmd, ret)
+
+    def init(self, args):
+        self.handler.thread.start()

@@ -20,39 +20,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from orator import Model
+from multiprocessing import Pipe
+from threading import Thread
+
+from moirai.abstract_process_handler import AbstractProcessHandler
+from moirai.decorators import decorate_all_methods, dont_raise
+from moirai.webapi.api import APIv1
+from moirai.webapi.cmd_processor import CommandProcessor
 
 
-def _objectify(m):
-    return {
-        'id': m.driver_id,
-        'alias': m.alias,
-        'digital': m.digital,
-        'input': m.input,
-        'pwm': m.pwm,
-        'value': m.initial_value,
-        'map': m.ahio_id
-    }
+def main(pipe):
+    handler = ProcessHandler(pipe)
+    handler.run()
 
 
-class Mappings(Model):
+@decorate_all_methods(dont_raise)
+class ProcessHandler(AbstractProcessHandler):
 
-    @staticmethod
-    def set(mappings):
-        for m in Mappings.all():
-            m.delete()
-        for d in mappings:
-            m = Mappings()
-            m.driver_id = d['id']
-            m.alias = d['alias']
-            m.digital = d['digital']
-            m.input = d['input']
-            m.pwm = d['pwm']
-            m.initial_value = d['value']
-            m.ahio_id = d['map']
-            m.save()
+    def __init__(self, pipe):
+        self.cmd_processor = CommandProcessor(self)
+        super().__init__('WebAPI', pipe)
+        self.api = APIv1()
+        self.thread = Thread(target=self.api.run, name='WebAPIThread')
 
-    @staticmethod
-    def get():
-        ms = Mappings.all()
-        return [_objectify(m) for m in ms]
+    def quit(self):
+        pass
+
+    def process_command(self, sender, cmd, args):
+        if cmd:
+            self.cmd_processor.process_command(sender, cmd, args)
+
+    def loop(self):
+        pass

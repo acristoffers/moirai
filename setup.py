@@ -23,9 +23,9 @@
 
 from codecs import open
 from os import path
-from setuptools import setup, find_packages
-import moirai
 
+import moirai
+from setuptools import find_packages, setup
 
 pwd = path.abspath(path.dirname(__file__))
 with open(path.join(pwd, 'README.md'), encoding='utf-8') as f:
@@ -56,10 +56,10 @@ setup(name='moirai',
       packages=find_packages(),
       license="MIT",
       install_requires=[
-          'orator',
           'appdirs',
           'ahio',
-          'websockify'
+          'Flask',
+          'pymongo'
       ],
       entry_points={
           'console_scripts': [

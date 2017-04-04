@@ -41,21 +41,23 @@ The lifetime thus becomes:
  -- Child process enters package main loop
  - User hits CTRL+C, both process receives SIGINT
  -- Child process ignores SIGINT
- - Parent process handles it and sends 'quit' to all child through pipes
+ - Parent process handles it and sends 'quit' to all children through pipes
  -- Child process receives 'quit' command, cleans up and exits gracefully
  - Parent process waits for all children to terminate and then exits
 """
 
-from multiprocessing import Process, Pipe
-from moirai import decorators
 import hashlib
 import os
 import signal
 import sys
 import time
+from multiprocessing import Pipe, Process
+
+from moirai import decorators
+from moirai.database import DatabaseV1
 
 processes = {}
-ps = ['database', 'io_manager', 'tcp', 'websocket']
+ps = ['webapi']
 process_type = 'main'
 websocket = None
 
@@ -106,8 +108,8 @@ def main(pipe, name):
         import moirai.io_manager as pkg
     elif name == 'tcp':
         import moirai.tcp as pkg
-    elif name == 'websocket':
-        import moirai.websocket as pkg
+    elif name == 'webapi':
+        import moirai.webapi as pkg
     pkg.main(pipe)
 
 
@@ -152,7 +154,8 @@ def start():
                 pswd = h.hexdigest()
             print("Setting password to %s" % pswd)
             has_cmd = True
-            processes['database'][1].send(('settings_set', ('password', pswd)))
+            db = DatabaseV1()
+            db.set_setting('password', pswd)
     if has_cmd:
         signal_handler(None, None)
     else:

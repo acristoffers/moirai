@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from moirai.decorators import decorate_all_methods, dont_raise, log
-import ahio
 import inspect
 import json
+
+import ahio
+from moirai.decorators import decorate_all_methods, dont_raise, log
 
 
 def arguments_of(func):

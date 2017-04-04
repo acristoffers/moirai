@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from multiprocessing import Pipe
 import time
+from multiprocessing import Pipe
 
 
 class AbstractProcessHandler(object):
@@ -113,3 +113,6 @@ class AbstractProcessHandler(object):
                         self.set_pipe(name, None)
                     return
             self.loop()
+
+    def quit(self):
+        pass
