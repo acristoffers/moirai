@@ -75,4 +75,7 @@ class Hardware(object):
         if driver not in ahio.list_available_drivers():
             return []
         driver = ahio.new_driver(driver)
-        return driver.available_pins()
+        try:
+            return driver.available_pins()
+        except:
+            return []
