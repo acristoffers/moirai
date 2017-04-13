@@ -22,21 +22,35 @@
 
 import hashlib
 import json
+from enum import Enum
 
 from flask import Flask, request
 from moirai.database import DatabaseV1
 from moirai.decorators import decorate_all_methods, dont_raise, log
+from moirai.hardware import Hardware
 
 
 class APIv1:
     def __init__(self):
         self.app = Flask(__name__)
         self.db = DatabaseV1()
+        self.hw = Hardware()
 
     def run(self):
-        self.app.add_url_rule('/', view_func=self.index)
-        self.app.add_url_rule('/login', view_func=self.login, methods=['POST'])
+        self.app.add_url_rule('/',
+                              view_func=self.index)
+        self.app.add_url_rule('/login',
+                              view_func=self.login,
+                              methods=['POST'])
+        self.app.add_url_rule('/hardware/drivers',
+                              view_func=self.hardware_drivers,
+                              methods=['GET'])
         self.app.run(host="0.0.0.0")
+
+    def verify_token(self):
+        authorization = request.headers.get('Authorization')
+        token = authorization.split(' ')[-1]
+        return self.db.verify_token(token)
 
     def index(self):
         return 'Moirai Control System\n'
@@ -71,3 +85,51 @@ class APIv1:
             return json.dumps({'token': self.db.generate_token()})
         else:
             return '{}', 403
+
+    def hardware_drivers(self):
+        if not self.verify_token():
+            return '{}', 403
+        ds = self.hw.list_drivers()
+        ds = [{
+            'name': d,
+            'has_setup': self.hw.driver_has_setup(d),
+            'setup_arguments': self.hw.driver_setup_arguments(d),
+            'ports': self.ports_for_driver(d)
+        } for d in ds]
+        return json.dumps(ds)
+
+    def ports_for_driver(self, driver):
+        ps = self.hw.driver_ports(driver)
+        ps = [self.encode_port(p) for p in ps]
+        return ps
+
+    def encode_port(self, port):
+        """
+        If the port is a Enum, us its value. If it's a value that can be dumped
+        to JSON, use it, if not, raise an exception.
+        """
+        port_id = port['id']
+        if isinstance(port['id'], Enum):
+            port_id = port['id'].value
+        else:
+            try:
+                port_id = json.dumps(port['id'])
+            except:
+                pass
+        port['id'] = port_id
+        return port
+
+    def decode_port(self, driver, port):
+        """
+        If the ID in port should be converted to Enum, do it. Else, keep it as
+        it is.
+        """
+        if driver not in ahio.list_available_drivers():
+            return port
+        driver = ahio.new_driver(driver)
+        ps = driver.available_pins()
+        if len(ps) > 0:
+            p = ps[0]
+            if isinstance(p['id'], Enum):
+                port['id'] = p['id'].__class__(port['id'])
+        return port

@@ -30,6 +30,7 @@ class DatabaseV1(object):
     def __init__(self):
         self.client = MongoClient()
         self.db = self.client.moirai
+        self.token_lifespan = 5 * 60
 
     def settings_collection(self):
         return self.db.settings
@@ -48,7 +49,8 @@ class DatabaseV1(object):
 
     def verify_token(self, token):
         ts = self.get_setting('tokens')
-        ts = [t for t in ts if t['token'] == token]
+        ts = [t for t in ts if t['token'] == token and
+              time.time() - t['time'] < self.token_lifespan]
         return len(ts) > 0
 
     def generate_token(self):
@@ -58,6 +60,6 @@ class DatabaseV1(object):
         }
         ts = self.get_setting('tokens') or []
         ts += [t]
-        ts = [t for t in ts if time.time() - t['time'] < 5 * 60]
+        ts = [t for t in ts if time.time() - t['time'] < self.token_lifespan]
         self.set_setting('tokens', ts)
         return t['token']
