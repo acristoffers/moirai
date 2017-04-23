@@ -20,81 +20,110 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import appdirs
 import errno
 import inspect
-import moirai
 import os
 import socket
 import time
 
-log_dir = appdirs.user_log_dir(appname=moirai.__name__,
+import appdirs
+
+import moirai
+
+LOG_DIR = appdirs.user_log_dir(appname=moirai.__name__,
                                appauthor=moirai.__author__,
                                version=moirai.__version__)
-os.makedirs(log_dir, exist_ok=True)
-log_file = open(os.path.join(log_dir, 'moirai.log'), 'at')
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_FILE = open(os.path.join(LOG_DIR, 'moirai.log'), 'at')
 
 
 def log_file_path():
-    return os.path.join(log_dir, 'moirai.log')
+    """
+    Returns the path of the log file.
+    """
+    return os.path.join(LOG_DIR, 'moirai.log')
 
 
 def decorate_all_methods(decorator):
+    """
+    Decorates every member of a class.
+    """
     def decorate(cls):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            setattr(cls, name, decorator(fn))
+        """
+        Decorates every member of a class.
+        """
+        for name, func in inspect.getmembers(cls, inspect.isfunction):
+            setattr(cls, name, decorator(func))
         return cls
     return decorate
 
 
-def ignore_eagain(f):
+def ignore_eagain(func):
     """
     errno.EAGAIN is generated in some platforms when the socket is
     non-blocking. This decorator ignores this exception, as it's not an error.
     """
-    def g(ret, *kargs):
+    def decorate(ret, *kargs):
+        """
+        Decorator.
+        """
         try:
-            return f(*kargs)
-        except socket.error as e:
-            if e.errno == errno.EAGAIN:
+            return func(*kargs)
+        except socket.error as error:
+            if error.errno == errno.EAGAIN:
                 return ret
             else:
-                raise e
-    return g
+                raise error
+    return decorate
 
 
 def log_msg(msg):
+    """
+    Logs `msg` to log file.
+    """
     msg = '%s: %s\n' % (time.ctime(), msg)
-    log_file.write(msg)
-    log_file.flush()
+    LOG_FILE.write(msg)
+    LOG_FILE.flush()
 
 
-def log(f):
-    def g(*kargs, **kwargs):
+def log(func):
+    """
+    Logs every call to a class method.
+    """
+    def decorate(*kargs, **kwargs):
+        """
+        Logs every call to a class method.
+        """
         func_name = []
-        if f.__module__ != '__main__':
-            func_name.append(f.__module__)
-        func_name.append(f.__qualname__)
+        if func.__module__ != '__main__':
+            func_name.append(func.__module__)
+        func_name.append(func.__qualname__)
         func_name = '.'.join(func_name)
 
         args = []
         if kargs:
             args = [str(arg) for arg in kargs]
         if kwargs:
-            args += ['%s=%s' % i for i in a.items()]
+            args += ['%s=%s' % i for i in kwargs.items()]
         args = ', '.join(args)
 
         log_str = '%s(%s)' % (func_name, args)
         log_msg(log_str)
-        return f(*kargs, **kwargs)
-    return g
+        return func(*kargs, **kwargs)
+    return decorate
 
 
-def dont_raise(f):
-    def g(*kargs, **kwargs):
+def dont_raise(func):
+    """
+    Decorate every member of a class to stop raising exceptions.
+    """
+    def decorate(*kargs, **kwargs):
+        """
+        Decorate every member of a class to stop raising exceptions.
+        """
         try:
-            return f(*kargs, **kwargs)
-        except Exception as e:
-            log_msg('An Exception occurred: %s' % e)
-            print('An Exception occurred: %s' % e)
-    return g
+            return func(*kargs, **kwargs)
+        except Exception as error:
+            log_msg('An Exception occurred: %s' % error)
+            print('An Exception occurred: %s' % error)
+    return decorate

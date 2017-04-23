@@ -47,7 +47,6 @@ The lifetime thus becomes:
 """
 
 import hashlib
-import os
 import signal
 import sys
 import time
@@ -56,21 +55,24 @@ from multiprocessing import Pipe, Process
 from moirai import decorators
 from moirai.database import DatabaseV1
 
-processes = {}
-ps = ['webapi']
-process_type = 'main'
-websocket = None
+PROCESSES = {}
+PS = ['webapi']
+PROCESS_TYPE = 'main'
+WEBSOCKET = None
 
 
-def signal_handler(signal, frame):
-    global ps
+def signal_handler(*_):
+    """
+    Handles system signals, reacting and sending messages to spawned processes
+    """
+    global PS
     # Only respond to SIGINT if we're on parent process.
     # Child processes will be asked to quit.
-    if process_type == 'main':
+    if PROCESS_TYPE == 'main':
         print('')
         # Ask each child process to quit
-        for key in reversed(ps):
-            process, pipe = processes[key]
+        for key in reversed(PS):
+            process, pipe = PROCESSES[key]
             if key == 'websocket':
                 process.terminate()
             else:
@@ -81,27 +83,34 @@ def signal_handler(signal, frame):
 
 
 def spawn_process(name):
-    as_daemon = name != 'websocket'
+    """
+    Spawns a new processes for module named `name`
+    """
     pipe_main, pipe_process = Pipe()
-    p = Process(target=main, args=(pipe_process, name), daemon=as_daemon)
-    processes[name] = (p, pipe_main)
-    p.start()
+    process = Process(target=main, args=(pipe_process, name))
+    PROCESSES[name] = (process, pipe_main)
+    process.start()
 
 
 def init(name):
-    global processes
-    pipe = processes[name][1]
+    """
+    Send the INIT command to the process named `name`
+    """
+    global PROCESSES
+    pipe = PROCESSES[name][1]
     pipe.send(('init', None))
 
 
 def main(pipe, name):
-    # This is the main function of child processes. It will flag this process
-    # as child and start the event loop in the correct package. Setting
-    # processes to None is only to keep this instance clean, as it doesn't need
-    # to know about the existence of other processes.
-    global processes, process_type
-    processes = None
-    process_type = 'child'
+    """
+    This is the main function of child processes. It will flag this process
+    as child and start the event loop in the correct package. Setting
+    processes to None is only to keep this instance clean, as it doesn't need
+    to know about the existence of other processes.
+    """
+    global PROCESSES, PROCESS_TYPE
+    PROCESSES = None
+    PROCESS_TYPE = 'child'
     if name == 'database':
         import moirai.database as pkg
     elif name == 'io_manager':
@@ -114,8 +123,11 @@ def main(pipe, name):
 
 
 def query_alive(name):
-    global processes
-    pipe = processes[name][1]
+    """
+    Checks if process `name` is answering, e.q. if it's not stale
+    """
+    global PROCESSES
+    pipe = PROCESSES[name][1]
     if pipe.poll():
         pipe.recv()
     pipe.send(('alive', None))
@@ -124,7 +136,10 @@ def query_alive(name):
 
 
 def start():
-    global processes, ps
+    """
+    Entry point of the application
+    """
+    global PROCESSES, PS
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
@@ -133,12 +148,12 @@ def start():
     print('Logging to %s' % decorators.log_file_path())
 
     # Creates a processs for each module of moirai
-    for p in ps:
-        spawn_process(p)
+    for process in PS:
+        spawn_process(process)
 
     time.sleep(1)
 
-    while not all([query_alive(p) for p in processes]):
+    while not all([query_alive(p) for p in PROCESSES]):
         pass
 
     # parses command line arguments
@@ -146,29 +161,29 @@ def start():
     for arg in sys.argv:
         if arg.startswith('--set-password='):
             pswd = arg.split('=')[-1]
-            if len(pswd) == 0:
+            if not pswd:
                 pswd = None
             else:
-                h = hashlib.sha512()
-                h.update(bytes(pswd, 'utf-8'))
-                pswd = h.hexdigest()
+                hasher = hashlib.sha512()
+                hasher.update(bytes(pswd, 'utf-8'))
+                pswd = hasher.hexdigest()
             print("Setting password to %s" % pswd)
             has_cmd = True
-            db = DatabaseV1()
-            db.set_setting('password', pswd)
+            database = DatabaseV1()
+            database.set_setting('password', pswd)
     if has_cmd:
         signal_handler(None, None)
     else:
-        for p in ps:
-            init(p)
+        for process in PS:
+            init(process)
         time.sleep(1)
     last_message = time.time() + 60
 
     while True:
         if time.time() - last_message > 1:
             time.sleep(1)
-        for name in ps:
-            pipe = processes[name][1]
+        for name in PS:
+            pipe = PROCESSES[name][1]
             if pipe.poll():
                 last_message = time.time()
                 command, args = pipe.recv()
@@ -176,11 +191,11 @@ def start():
                     signal_handler(None, None)
                 elif command == 'connect':
                     pkg_from, pkg_to = args
-                    pipe_to = processes[pkg_to][1]
-                    p1, p2 = Pipe()
-                    pipe_to.send(('connect', (pkg_from, p1)))
+                    pipe_to = PROCESSES[pkg_to][1]
+                    process1, process2 = Pipe()
+                    pipe_to.send(('connect', (pkg_from, process1)))
                     status, __ = pipe_to.recv()
                     if status == 'ok':
-                        pipe.send(('ok', p2))
+                        pipe.send(('ok', process2))
                     else:
                         pipe.send(('error', None))

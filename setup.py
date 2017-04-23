@@ -21,21 +21,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from codecs import open
+import codecs
 from os import path
 
 import moirai
 from setuptools import find_packages, setup
 
-pwd = path.abspath(path.dirname(__file__))
-with open(path.join(pwd, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+PWD = path.abspath(path.dirname(__file__))
+with codecs.open(path.join(PWD, 'README.md'), encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
 
 
 setup(name='moirai',
       version=moirai.__version__,
       description='Digital Control Manager Backend',
-      long_description=long_description,
+      long_description=LONG_DESCRIPTION,
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
           'Development Status :: 2 - Pre-Alpha',
@@ -65,5 +65,4 @@ setup(name='moirai',
           'console_scripts': [
               'moirai = moirai.moirai:start'
           ]
-      }
-      )
+      })

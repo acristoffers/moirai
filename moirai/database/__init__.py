@@ -20,6 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+Database class. Connects to MongoDB and abstracts all communication with it.
+"""
+
 import time
 import uuid
 
@@ -27,6 +31,10 @@ from pymongo import MongoClient
 
 
 class DatabaseV1(object):
+    """
+    Database class. Connects to MongoDB and abstracts all communication with it.
+    """
+
     def __init__(self):
         self.client = MongoClient()
         self.db = self.client.moirai

@@ -21,10 +21,13 @@
 # THE SOFTWARE.
 
 import time
-from multiprocessing import Pipe
 
 
 class AbstractProcessHandler(object):
+    """
+    Base class for modules ProcessHandlers. Defines the API used by two
+    processes to communicate and execute code asynchronously.
+    """
 
     def __init__(self, name, pipe):
         print('Starting %s...' % name)
@@ -35,29 +38,48 @@ class AbstractProcessHandler(object):
         self.quitting = False
         self.set_pipe('parent', pipe)
 
-    def set_sleep(boole):
-        self.sleep = boole
+    def set_sleep(self, sleep):
+        """
+        Set's the sleep property.
+        """
+        self.sleep = sleep
 
     def pipe_for(self, name):
+        """
+        Returns the pipe used to communicate with process `name`.
+        """
         return self._pipes.get(name, None)
 
     def set_pipe(self, name, pipe):
+        """
+        Sets the pipe used to communicate with process `name`.
+        """
         if pipe:
             self._pipes[name] = pipe
         else:
             del self._pipes[name]
 
     def pipes(self):
+        """
+        Returns a list of all pipes registered.
+        """
         return list(self._pipes)
 
-    def send_command(self, to, cmd, args):
-        pipe = self.pipe_for(to)
+    def send_command(self, destination, cmd, args):
+        """
+        Sends a command `cmd` to the process named `destination` with
+        arguments `args`
+        """
+        pipe = self.pipe_for(destination)
         if pipe:
             pipe.send((cmd, args))
         else:
-            print("No pipe for %s" % to)
+            print("No pipe for %s" % destination)
 
     def read_pipe(self, name, blocking=False):
+        """
+        Read from pipe `name`.
+        """
         pipe = self.pipe_for(name)
         try:
             if blocking or (not blocking and pipe.poll()):
@@ -71,6 +93,12 @@ class AbstractProcessHandler(object):
             del self._pipes[name]
             return (None, None)
 
+    def process_command(self, sender, cmd, args):
+        """
+        Abstract method to be implemented by classes extending this class.
+        """
+        pass
+
     def _process_command(self, name):
         cmd, args = self.read_pipe(name)
         if cmd == 'quit':
@@ -78,6 +106,7 @@ class AbstractProcessHandler(object):
             self.send_command(name, 'ok', None)
             return 'quit'
         elif cmd == 'close':
+            pipe = self.pipe_for(name)
             pipe.send(('ok', None))
             self.set_pipe(name, None)
             if not self.pipes():
@@ -92,6 +121,9 @@ class AbstractProcessHandler(object):
             self.process_command(name, cmd, args)
 
     def request_connection(self, pkg_from, pkg_to):
+        """
+        Ask the main process for a pipe with process `pkg_to`.
+        """
         self.send_command('parent', 'connect', (pkg_from, pkg_to))
         answer, pipe = self.read_pipe('parent', blocking=True)
         if answer == 'ok':
@@ -100,7 +132,17 @@ class AbstractProcessHandler(object):
             raise RuntimeError('Can not connect %s with %s' %
                                (pkg_from, pkg_to))
 
+    def loop(self):
+        """
+        Main loop of the process, to be implemented by the class that inherits
+        this class.
+        """
+        pass
+
     def run(self):
+        """
+        Run loop of this process.
+        """
         while True:
             if self.sleep and time.time() - self._last_message > 1:
                 time.sleep(0.5)
@@ -109,10 +151,13 @@ class AbstractProcessHandler(object):
                 if result == 'quit':
                     print('Shutting down %s...' % self._pname)
                     self.quit()
-                    for name in self.pipes():
-                        self.set_pipe(name, None)
+                    for name2 in self.pipes():
+                        self.set_pipe(name2, None)
                     return
             self.loop()
 
     def quit(self):
+        """
+        Cleaning code before quitting.
+        """
         pass

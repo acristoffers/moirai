@@ -22,38 +22,51 @@
 
 import hashlib
 import json
+
 from enum import Enum
 
 from flask import Flask, request
 from moirai.database import DatabaseV1
-from moirai.decorators import decorate_all_methods, dont_raise, log
 from moirai.hardware import Hardware
 
 
 class APIv1:
+    """
+    Starts a WebServer for the API endpoint.
+    """
+
     def __init__(self):
         self.app = Flask(__name__)
-        self.db = DatabaseV1()
-        self.hw = Hardware()
+        self.database = DatabaseV1()
+        self.hardware = Hardware()
 
     def run(self):
+        """
+        Entry point for the class. Adds routes and starts listening.
+        """
         self.app.add_url_rule('/',
-                              view_func=self.index)
+                              view_func=lambda: 'Moirai Control System\n')
         self.app.add_url_rule('/login',
                               view_func=self.login,
                               methods=['POST'])
         self.app.add_url_rule('/hardware/drivers',
                               view_func=self.hardware_drivers,
                               methods=['GET'])
+        self.app.add_url_rule('/hardware/configuration',
+                              view_func=self.hardware_set_configuration,
+                              methods=['POST'])
+        self.app.add_url_rule('/hardware/configuration',
+                              view_func=self.hardware_get_configuration,
+                              methods=['GET'])
         self.app.run(host="0.0.0.0")
 
     def verify_token(self):
+        """
+        Verifies the token sent as a HTTP Authorization header.
+        """
         authorization = request.headers.get('Authorization')
         token = authorization.split(' ')[-1]
-        return self.db.verify_token(token)
-
-    def index(self):
-        return 'Moirai Control System\n'
+        return self.database.verify_token(token)
 
     def login(self):
         """
@@ -61,51 +74,166 @@ class APIv1:
         Should be called with a POST request containing the following body:
 
         {
-            "password": "..."
+            "password": string
         }
 
         @returns:
             On success, HTTP 200 Ok and body:
 
             {
-                "token": "..."
+                "token": string
             }
 
             On failure, HTTP 403 Unauthorized and body:
 
-            {
-            }
+            {}
         """
         password = request.json.get('password', '')
         hasher = hashlib.sha512()
         hasher.update(bytes(password, 'utf-8'))
         password = hasher.hexdigest()
-        saved_password = self.db.get_setting('password')
+        saved_password = self.database.get_setting('password')
         if saved_password == password:
-            return json.dumps({'token': self.db.generate_token()})
-        else:
-            return '{}', 403
+            return json.dumps({'token': self.database.generate_token()})
+        return '{}', 403
 
     def hardware_drivers(self):
+        """
+        Returns a JSON object with all the available drivers, their setups, if
+        any, and ports, if listable.
+
+        @returns:
+            {
+                name: string,
+                has_setup: boolean,
+                setup_arguments: [
+                    {
+                        name: string,
+                        default_value: string
+                    }
+                ],
+                ports: [
+                    {
+                        id: number,
+                        name: string,
+                        analog: {
+                            input: boolean,
+                            output: boolean,
+                            read_range: [number, number],
+                            write_range: [number, number]
+                        }
+                        digital: {
+                            input: boolean,
+                            output: boolean,
+                            pwm: boolean
+                        }
+                    }
+                ]
+            }
+        """
         if not self.verify_token():
             return '{}', 403
-        ds = self.hw.list_drivers()
-        ds = [{
-            'name': d,
-            'has_setup': self.hw.driver_has_setup(d),
-            'setup_arguments': self.hw.driver_setup_arguments(d),
-            'ports': self.ports_for_driver(d)
-        } for d in ds]
-        return json.dumps(ds)
+        drivers = self.hardware.list_drivers()
+        drivers = [{
+            'name': driver,
+            'has_setup': self.hardware.driver_has_setup(driver),
+            'setup_arguments': self.hardware.driver_setup_arguments(driver),
+            'ports': self.ports_for_driver(driver)
+        } for driver in drivers]
+        return json.dumps(drivers)
+
+    def hardware_set_configuration(self):
+        """
+        Saves the given driver configuration. It must be a POST request with
+        the following body:
+
+        {
+            name: string,
+            setup_arguments: [
+                {
+                    name: string,
+                    value: string
+                }
+            ],
+            ports: [
+                {
+                    id: number,
+                    name: string | number,
+                    alias: string,
+                    type: number,
+                    defaultValue: string
+                }
+            ]
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+        configuration = request.json
+        self.database.set_setting('hardware_configuration', configuration)
+        return '{}'
+
+    def hardware_get_configuration(self):
+        """
+        Returns the saved driver configuration. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {
+                name: string,
+                setup_arguments: [
+                    {
+                        name: string,
+                        value: string
+                    }
+                ],
+                ports: [
+                    {
+                        id: number,
+                        name: string | number,
+                        alias: string,
+                        type: number,
+                        defaultValue: string
+                    }
+                ]
+            }
+
+            or
+
+            {} if there is no configuration saved
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        configuration = self.database.get_setting('hardware_configuration')
+        if configuration is not None:
+            return json.dumps(configuration)
+        return '{}'
 
     def ports_for_driver(self, driver):
-        ps = self.hw.driver_ports(driver)
+        """
+        Returns a list of encoded ports for the given driver.
+        """
+        ps = self.hardware.driver_ports(driver)
         ps = [self.encode_port(p) for p in ps]
         return ps
 
     def encode_port(self, port):
         """
-        If the port is a Enum, us its value. If it's a value that can be dumped
+        If the port is a Enum, use its value. If it's a value that can be dumped
         to JSON, use it, if not, raise an exception.
         """
         port_id = port['id']

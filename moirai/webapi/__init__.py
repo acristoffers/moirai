@@ -30,12 +30,18 @@ from moirai.webapi.cmd_processor import CommandProcessor
 
 
 def main(pipe):
+    """
+    Entry point for this process.
+    """
     handler = ProcessHandler(pipe)
     handler.run()
 
 
 @decorate_all_methods(dont_raise)
 class ProcessHandler(AbstractProcessHandler):
+    """
+    Manages this processes' lifecycle and handles IPC.
+    """
 
     def __init__(self, pipe):
         self.cmd_processor = CommandProcessor(self)
@@ -47,6 +53,9 @@ class ProcessHandler(AbstractProcessHandler):
         pass
 
     def process_command(self, sender, cmd, args):
+        """
+        Redirects the commands received to the CommandProcessor class.
+        """
         if cmd:
             self.cmd_processor.process_command(sender, cmd, args)
 
