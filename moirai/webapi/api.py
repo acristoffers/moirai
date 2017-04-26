@@ -49,6 +49,9 @@ class APIv1:
         self.app.add_url_rule('/login',
                               view_func=self.login,
                               methods=['POST'])
+        self.app.add_url_rule('/set-password',
+                              view_func=self.set_password,
+                              methods=['POST'])
         self.app.add_url_rule('/hardware/drivers',
                               view_func=self.hardware_drivers,
                               methods=['GET'])
@@ -64,9 +67,12 @@ class APIv1:
         """
         Verifies the token sent as a HTTP Authorization header.
         """
-        authorization = request.headers.get('Authorization')
-        token = authorization.split(' ')[-1]
-        return self.database.verify_token(token)
+        try:
+            authorization = request.headers.get('Authorization')
+            token = authorization.split(' ')[-1]
+            return self.database.verify_token(token)
+        except Exception as e:
+            return False
 
     def login(self):
         """
@@ -96,6 +102,32 @@ class APIv1:
         if saved_password == password:
             return json.dumps({'token': self.database.generate_token()})
         return '{}', 403
+
+    def set_password(self):
+        """
+        Sets the password. Required body:
+
+        {
+            "password": string
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+        password = request.json.get('password', '')
+        hasher = hashlib.sha512()
+        hasher.update(bytes(password, 'utf-8'))
+        password = hasher.hexdigest()
+        self.database.set_setting('password', password)
+        return '{}'
 
     def hardware_drivers(self):
         """
@@ -163,6 +195,13 @@ class APIv1:
                     type: number,
                     defaultValue: string
                 }
+            ],
+            configurations: [
+                {
+                    port: number,
+                    alias: string,
+                    formula: string
+                }
             ]
         }
 
@@ -203,6 +242,13 @@ class APIv1:
                         alias: string,
                         type: number,
                         defaultValue: string
+                    }
+                ],
+                configurations: [
+                    {
+                        port: number,
+                        alias: string,
+                        formula: string
                     }
                 ]
             }
