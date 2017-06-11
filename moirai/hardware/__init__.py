@@ -21,8 +21,46 @@
 # THE SOFTWARE.
 
 import inspect
-
 import ahio
+
+from multiprocessing import Pipe
+from threading import Thread
+
+from moirai.abstract_process_handler import AbstractProcessHandler
+from moirai.decorators import decorate_all_methods, dont_raise
+from moirai.hardware.cmd_processor import CommandProcessor
+
+
+def main(pipe):
+    """
+    Entry point for this process.
+    """
+    handler = ProcessHandler(pipe)
+    handler.run()
+
+
+@decorate_all_methods(dont_raise)
+class ProcessHandler(AbstractProcessHandler):
+    """
+    Manages this processes' lifecycle and handles IPC.
+    """
+
+    def __init__(self, pipe):
+        self.cmd_processor = CommandProcessor(self)
+        super().__init__('Hardware', pipe)
+
+    def quit(self):
+        pass
+
+    def process_command(self, sender, cmd, args):
+        """
+        Redirects the commands received to the CommandProcessor class.
+        """
+        if cmd:
+            self.cmd_processor.process_command(sender, cmd, args)
+
+    def loop(self):
+        pass
 
 
 def arguments_of(func):

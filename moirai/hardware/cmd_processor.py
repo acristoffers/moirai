@@ -20,33 +20,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from multiprocessing import Pipe
-
-import ahio
-from moirai.abstract_process_handler import AbstractProcessHandler
 from moirai.decorators import decorate_all_methods, dont_raise, log
-from moirai.io_manager.cmd_processor import CommandProcessor
-from moirai.io_manager.hardware_layer import HardwareLayer
-
-
-def main(pipe):
-    handler = ProcessHandler(pipe)
-    handler.run()
+from moirai.hardware.system_response_tests import SystemResponseTest
 
 
 @decorate_all_methods(dont_raise)
-class ProcessHandler(AbstractProcessHandler):
+@decorate_all_methods(log)
+class CommandProcessor(object):
+    """
+    Processes commands for this process
+    """
 
-    def __init__(self, pipe):
-        self.cmd_processor = CommandProcessor(self)
-        super().__init__('I/O Manager', pipe)
-
-    def quit(self):
-        pass
+    def __init__(self, handler):
+        self.handler = handler
 
     def process_command(self, sender, cmd, args):
-        if cmd:
-            self.cmd_processor.process_command(sender, cmd, args)
+        """
+        Handles commands received from other processes.
+        """
+        cmd = cmd.lower().strip()
+        method = getattr(self, cmd, None)
+        if method:
+            ret = method(args)
+            if ret:
+                self.handler.send_command(sender, cmd, ret)
 
-    def loop(self):
+    def init(self, _):
+        """
+        Initialization function for this process.
+        """
         pass
+
+    def run_test(self, test):
+        test = SystemResponseTest(test)
+        test.run()

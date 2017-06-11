@@ -49,3 +49,4 @@ class CommandProcessor(object):
         Initialization function for this process.
         """
         self.handler.thread.start()
+        self.handler.request_connection('webapi', 'hardware')

@@ -35,10 +35,11 @@ class APIv1:
     Starts a WebServer for the API endpoint.
     """
 
-    def __init__(self):
+    def __init__(self, processHandler):
         self.app = Flask(__name__)
         self.database = DatabaseV1()
         self.hardware = Hardware()
+        self.ph = processHandler
 
     def run(self):
         """
@@ -61,6 +62,15 @@ class APIv1:
         self.app.add_url_rule('/hardware/configuration',
                               view_func=self.hardware_get_configuration,
                               methods=['GET'])
+        self.app.add_url_rule('/system_response/tests',
+                              view_func=self.system_response_get_tests,
+                              methods=['GET'])
+        self.app.add_url_rule('/system_response/tests',
+                              view_func=self.system_response_set_tests,
+                              methods=['POST'])
+        self.app.add_url_rule('/system_response/test/run',
+                              view_func=self.system_response_run,
+                              methods=['POST'])
         self.app.run(host="0.0.0.0")
 
     def verify_token(self):
@@ -264,9 +274,107 @@ class APIv1:
         if not self.verify_token():
             return '{}', 403
 
-        configuration = self.database.get_setting('hardware_configuration')
-        if configuration is not None:
-            return json.dumps(configuration)
+        config = self.database.get_setting('hardware_configuration') or {}
+        return json.dumps(config)
+
+    def system_response_get_tests(self):
+        """
+        Returns the saved system response tests. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            [{
+                id: number
+                name: string
+                type: string
+                inputs: string[]
+                output: string
+                points: [{
+                    x: number
+                    y: number
+                }]
+                fixedOutputs: [{
+                    alias: string
+                    value: number
+                }]
+                logRate: number
+            }]
+
+            or
+
+            [] if there is no configuration saved
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            []
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        tests = self.database.get_setting('system_response_tests') or []
+        return json.dumps(tests)
+
+    def system_response_set_tests(self):
+        """
+        Sets the saved system response tests. It must be a POST request with
+        the following body:
+
+        [{
+            id: number
+            name: string
+            type: string
+            inputs: string[]
+            output: string
+            points: [{
+                x: number
+                y: number
+            }]
+            fixedOutputs: [{
+                alias: string
+                value: number
+            }]
+            logRate: number
+        }]
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        tests = request.json
+        self.database.set_setting('system_response_tests', tests)
+        return '{}'
+
+    def system_response_run(self):
+        """
+        Runs the given test. It must be a POST request with the following body:
+
+        {
+            test: number
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        test = request.json['test']
+        self.ph.send_command("hardware", "run_test", test)
         return '{}'
 
     def ports_for_driver(self, driver):

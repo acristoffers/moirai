@@ -38,7 +38,7 @@ class DatabaseV1(object):
     def __init__(self):
         self.client = MongoClient()
         self.db = self.client.moirai
-        self.token_lifespan = 5 * 60
+        self.token_lifespan = 30 * 60
 
     def settings_collection(self):
         return self.db.settings
@@ -59,7 +59,13 @@ class DatabaseV1(object):
         ts = self.get_setting('tokens')
         ts = [t for t in ts if t['token'] == token and
               time.time() - t['time'] < self.token_lifespan]
-        return len(ts) > 0
+        if len(ts) > 0:
+            ts = self.get_setting('tokens')
+            ts = [t for t in ts if t['token'] != token]
+            ts.append({'token': token, 'time': time.time()})
+            self.set_setting('tokens', ts)
+            return True
+        return False
 
     def generate_token(self):
         t = {
@@ -71,3 +77,13 @@ class DatabaseV1(object):
         ts = [t for t in ts if time.time() - t['time'] < self.token_lifespan]
         self.set_setting('tokens', ts)
         return t['token']
+
+    def save_test_sensor_value(self, test, sensor, value, time):
+        db = self.db.test_sensor_values
+        data = {
+            'test': test,
+            'sensor': sensor,
+            'value': value,
+            'time': time
+        }
+        db.insert_one(data)

@@ -56,7 +56,7 @@ from moirai import decorators
 from moirai.database import DatabaseV1
 
 PROCESSES = {}
-PS = ['webapi']
+PS = ['webapi', 'hardware']
 PROCESS_TYPE = 'main'
 WEBSOCKET = None
 
@@ -111,12 +111,8 @@ def main(pipe, name):
     global PROCESSES, PROCESS_TYPE
     PROCESSES = None
     PROCESS_TYPE = 'child'
-    if name == 'database':
-        import moirai.database as pkg
-    elif name == 'io_manager':
-        import moirai.io_manager as pkg
-    elif name == 'tcp':
-        import moirai.tcp as pkg
+    if name == 'hardware':
+        import moirai.hardware as pkg
     elif name == 'webapi':
         import moirai.webapi as pkg
     pkg.main(pipe)

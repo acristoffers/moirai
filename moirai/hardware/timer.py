@@ -20,44 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from multiprocessing import Pipe
-from threading import Thread
-
-from moirai.abstract_process_handler import AbstractProcessHandler
-from moirai.decorators import decorate_all_methods, dont_raise
-from moirai.webapi.api import APIv1
-from moirai.webapi.cmd_processor import CommandProcessor
+import time
 
 
-def main(pipe):
-    """
-    Entry point for this process.
-    """
-    handler = ProcessHandler(pipe)
-    handler.run()
+class Timer:
+    def __init__(self, seconds, interval):
+        self.seconds = seconds
+        self.interval = interval
+        self.start = time.time()
+        self.t = time.time()
 
+    def sleep(self):
+        if time.time() - self.start > self.seconds:
+            raise Exception('Finished')
+        while time.time() - self.t < self.interval:
+            pass
+        self.t = time.time()
 
-@decorate_all_methods(dont_raise)
-class ProcessHandler(AbstractProcessHandler):
-    """
-    Manages this processes' lifecycle and handles IPC.
-    """
-
-    def __init__(self, pipe):
-        self.cmd_processor = CommandProcessor(self)
-        super().__init__('WebAPI', pipe)
-        self.api = APIv1(self)
-        self.thread = Thread(target=self.api.run, name='WebAPIThread')
-
-    def quit(self):
-        pass
-
-    def process_command(self, sender, cmd, args):
-        """
-        Redirects the commands received to the CommandProcessor class.
-        """
-        if cmd:
-            self.cmd_processor.process_command(sender, cmd, args)
-
-    def loop(self):
-        pass
+    def elapsed(self):
+        return time.time() - self.start
