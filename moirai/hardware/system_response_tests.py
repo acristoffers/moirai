@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 import ahio
+import datetime
 
 from moirai.database import DatabaseV1
 from moirai.hardware.configured_hardware import ConfiguredHardware
@@ -55,6 +56,9 @@ class SystemResponseTest(object):
         interval = self.test['logRate']
         t = Timer(run_time, interval)
         port = self.test['output']
+        start_time = datetime.datetime.utcnow()
+
+        self.db.set_setting('current_test', self.test['name'])
 
         for o in self.test['fixedOutputs']:
             self.hardware.write(o['alias'], o['value'])
@@ -70,13 +74,24 @@ class SystemResponseTest(object):
                         self.test['name'],
                         sensor,
                         value,
-                        t.elapsed())
+                        t.elapsed(),
+                        start_time)
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
                         self.hardware.write(port, point['y'])
+                        self.db.save_test_sensor_value(
+                            self.test['name'],
+                            port,
+                            point['y'],
+                            t.elapsed(),
+                            start_time)
                         break
+                if self.db.get_setting('current_test') is None:
+                    raise Exception('Interrupted')
         except Exception as e:
-            print(e)
+            pass
 
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])
+
+        self.db.set_setting('current_test', None)

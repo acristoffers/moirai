@@ -78,12 +78,42 @@ class DatabaseV1(object):
         self.set_setting('tokens', ts)
         return t['token']
 
-    def save_test_sensor_value(self, test, sensor, value, time):
+    def save_test_sensor_value(self, test, sensor, value, time, start_time):
         db = self.db.test_sensor_values
         data = {
             'test': test,
             'sensor': sensor,
             'value': value,
-            'time': time
+            'time': time,
+            'start_time': start_time
         }
         db.insert_one(data)
+
+    def list_test_data(self):
+        db = self.db.test_sensor_values
+        cursor = db.find(projection=['test', 'start_time'])
+        tests = [{'name': o['test'], 'date': o['start_time']} for o in cursor]
+        dates = {test['date']: test for test in tests}
+        return dates.values()
+
+    def get_test_data(self, test, start_time, skip=0):
+        db = self.db.test_sensor_values
+
+        cursor = db.find({
+            'test': test,
+            'start_time': start_time
+        }, skip=skip, sort=[('time', 1)])
+
+        points = [{
+            'sensor': o['sensor'],
+            'time': o['time'],
+            'value': o['value']
+        } for o in cursor]
+
+        return points
+
+    def remove_test(self, test, start_time):
+        self.db.test_sensor_values.delete_many({
+            'test': test,
+            'start_time': start_time
+        })

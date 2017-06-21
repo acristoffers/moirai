@@ -22,6 +22,7 @@
 
 import hashlib
 import json
+import dateutil.parser
 
 from enum import Enum
 
@@ -70,6 +71,18 @@ class APIv1:
                               methods=['POST'])
         self.app.add_url_rule('/system_response/test/run',
                               view_func=self.system_response_run,
+                              methods=['POST'])
+        self.app.add_url_rule('/system_response/test/stop',
+                              view_func=self.system_response_stop,
+                              methods=['GET'])
+        self.app.add_url_rule('/live_graph/tests',
+                              view_func=self.live_graph_list_tests,
+                              methods=['GET'])
+        self.app.add_url_rule('/live_graph/test',
+                              view_func=self.live_graph_get_test,
+                              methods=['POST'])
+        self.app.add_url_rule('/live_graph/test/remove',
+                              view_func=self.live_graph_remove_test,
                               methods=['POST'])
         self.app.run(host="0.0.0.0")
 
@@ -180,7 +193,7 @@ class APIv1:
             'name': driver,
             'has_setup': self.hardware.driver_has_setup(driver),
             'setup_arguments': self.hardware.driver_setup_arguments(driver),
-            'ports': self.ports_for_driver(driver)
+            'ports': self.__ports_for_driver(driver)
         } for driver in drivers]
         return json.dumps(drivers)
 
@@ -377,15 +390,136 @@ class APIv1:
         self.ph.send_command("hardware", "run_test", test)
         return '{}'
 
-    def ports_for_driver(self, driver):
+    def system_response_stop(self):
+        """
+        Stops the running test. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        self.database.set_setting('current_test', None)
+
+        return '{}'
+
+    def live_graph_list_tests(self):
+        """
+        Returns a list of available graphs. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            [ 
+                { 
+                    name: string
+                    date: string (ISO 8601)
+                    running: boolean
+                }
+            ]
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            []
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        running_test = self.database.get_setting('current_test')
+        tests = self.database.list_test_data()
+
+        if len(tests) == 0:
+            return '[]'
+
+        last_date = max([test['date'] for test in tests])
+        tests = [{
+            'name': t['name'],
+            'date': t['date'].isoformat(),
+            'running': t['name'] == running_test and t['date'] == last_date
+        } for t in tests]
+
+        return json.dumps(tests)
+
+    def live_graph_get_test(self):
+        """
+        Returns a graph. It must be a POST request with following body:
+
+        {
+            test: string
+            start_time: string (ISO 8601)
+            skip?: number
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            [ 
+                { 
+                    sensor: string
+                    time: string | number
+                    value: string | number
+                }
+            ]
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            []
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        test = request.json['test']
+        start_time = dateutil.parser.parse(request.json['start_time'])
+        skip = request.json.get('skip', 0)
+
+        points = self.database.get_test_data(test, start_time, skip)
+
+        return json.dumps(points)
+
+    def live_graph_remove_test(self):
+        """
+        Deletes a test. It must be a POST request with following body:
+
+        {
+            test: string
+            start_time: string (ISO 8601)
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            []
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            []
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        test = request.json['test']
+        start_time = dateutil.parser.parse(request.json['start_time'])
+
+        self.database.remove_test(test, start_time)
+
+        return '[]'
+
+    def __ports_for_driver(self, driver):
         """
         Returns a list of encoded ports for the given driver.
         """
         ps = self.hardware.driver_ports(driver)
-        ps = [self.encode_port(p) for p in ps]
+        ps = [self.__encode_port(p) for p in ps]
         return ps
 
-    def encode_port(self, port):
+    def __encode_port(self, port):
         """
         If the port is a Enum, use its value. If it's a value that can be dumped
         to JSON, use it, if not, raise an exception.
@@ -401,7 +535,7 @@ class APIv1:
         port['id'] = port_id
         return port
 
-    def decode_port(self, driver, port):
+    def __decode_port(self, driver, port):
         """
         If the ID in port should be converted to Enum, do it. Else, keep it as
         it is.
