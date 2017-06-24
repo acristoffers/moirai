@@ -57,6 +57,7 @@ class SystemResponseTest(object):
         t = Timer(run_time, interval)
         port = self.test['output']
         start_time = datetime.datetime.utcnow()
+        last_port_value = 0
 
         self.db.set_setting('current_test', self.test['name'])
 
@@ -79,6 +80,7 @@ class SystemResponseTest(object):
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
                         self.hardware.write(port, point['y'])
+                        last_port_value = point['y']
                         self.db.save_test_sensor_value(
                             self.test['name'],
                             port,
