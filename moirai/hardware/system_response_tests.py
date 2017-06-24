@@ -93,6 +93,13 @@ class SystemResponseTest(object):
         except Exception as e:
             pass
 
+        self.db.save_test_sensor_value(
+            self.test['name'],
+            port,
+            last_port_value,
+            t.elapsed(),
+            start_time)
+
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])
 

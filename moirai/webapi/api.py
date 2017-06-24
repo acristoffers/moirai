@@ -23,10 +23,13 @@
 import hashlib
 import json
 import dateutil.parser
+import os.path
+import tempfile
+import scipy.io as io
 
 from enum import Enum
 
-from flask import Flask, request
+from flask import Flask, request, send_file
 from moirai.database import DatabaseV1
 from moirai.hardware import Hardware
 
@@ -84,6 +87,12 @@ class APIv1:
         self.app.add_url_rule('/live_graph/test/remove',
                               view_func=self.live_graph_remove_test,
                               methods=['POST'])
+        self.app.add_url_rule('/live_graph/test/export',
+                              view_func=self.live_graph_export_mat,
+                              methods=['POST'])
+        self.app.add_url_rule('/dev/gen_dummy_tests',
+                              view_func=self.dev_gen_dummy_tests,
+                              methods=['GET'])
         self.app.run(host="0.0.0.0")
 
     def verify_token(self):
@@ -417,8 +426,8 @@ class APIv1:
         @returns:
             On success, HTTP 200 Ok and body:
 
-            [ 
-                { 
+            [
+                {
                     name: string
                     date: string (ISO 8601)
                     running: boolean
@@ -460,8 +469,8 @@ class APIv1:
         @returns:
             On success, HTTP 200 Ok and body:
 
-            [ 
-                { 
+            [
+                {
                     sensor: string
                     time: string | number
                     value: string | number
@@ -511,6 +520,47 @@ class APIv1:
 
         return '[]'
 
+    def live_graph_export_mat(self):
+        """
+        Generates a MATLAB's MAT file from data. It must be a POST request with
+        following body:
+
+        {
+            test: string
+            start_time: string (ISO 8601)
+        }
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            file-contents
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        test = request.json['test']
+        start_time = dateutil.parser.parse(request.json['start_time'])
+        v = request.json['variables']
+
+        ds = self.database.get_test_data(test, start_time, 0)
+        keys = list(set([o['sensor'] for o in ds]))
+        ts = list(set([p['time'] for p in ds]))
+        ds = {v[k]: [p['value'] for p in ds if p['sensor'] == k] for k in keys}
+        ds['t'] = ts
+
+        directory = tempfile.gettempdir()
+        file_path = os.path.join(directory, 'test.mat')
+
+        io.savemat(file_path, ds)
+
+        f = open(file_path, 'rb')
+
+        return send_file(f, as_attachment=True, attachment_filename='data.mat')
+
     def __ports_for_driver(self, driver):
         """
         Returns a list of encoded ports for the given driver.
@@ -549,3 +599,27 @@ class APIv1:
             if isinstance(p['id'], Enum):
                 port['id'] = p['id'].__class__(port['id'])
         return port
+
+    def dev_gen_dummy_tests(self):
+        import datetime
+        start_time = datetime.datetime.utcnow()
+        ts = list(range(600))
+
+        xs = ts
+        ys = [x ** 2 for x in xs]
+        zs = [2 * x for x in xs]
+
+        vss = [xs, ys, zs]
+        ns = ['x', 'y', 'z']
+
+        for n, vs in zip(ns, vss):
+            for x, t in zip(vs, ts):
+                self.database.save_test_sensor_value(
+                    'Dummy',
+                    n,
+                    x,
+                    t,
+                    start_time
+                )
+
+        return '[]'
