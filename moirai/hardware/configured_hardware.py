@@ -70,7 +70,7 @@ class ConfiguredHardware(object):
 
     def _read_calibrated(self, port, formula):
         local = {'x': self.driver.read(port)}
-        code = compile('y=%s' % formula, '<string>', 'exec')
+        code = compile('y=%s' % formula, '_string_', 'exec')
         exec(code, {}, local)
         return local['y']
 
@@ -82,11 +82,11 @@ class ConfiguredHardware(object):
     def read(self, port):
         f = self.inputs.get(port, None)
         if f is None:
-            raise Exception('Port not configured')
+            raise Exception(f'Port {port} not configured')
         return f()
 
     def write(self, port, value):
         f = self.outputs.get(port, None)
         if f is None:
-            raise Exception('Port not configured')
+            raise Exception(f'Port {port} not configured')
         f(value)

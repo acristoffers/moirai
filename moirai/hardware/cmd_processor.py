@@ -22,6 +22,7 @@
 
 from moirai.decorators import decorate_all_methods, dont_raise, log
 from moirai.hardware.system_response_tests import SystemResponseTest
+from moirai.hardware.controller import Controller
 
 
 @decorate_all_methods(dont_raise)
@@ -54,3 +55,7 @@ class CommandProcessor(object):
     def run_test(self, test):
         test = SystemResponseTest(test)
         test.run()
+
+    def run_controller(self, controller):
+        controller = Controller(controller)
+        controller.run()

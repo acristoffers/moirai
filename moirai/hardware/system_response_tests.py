@@ -65,10 +65,12 @@ class SystemResponseTest(object):
             self.hardware.write(o['alias'], o['value'])
 
         try:
-            while True:
+            while self.db.get_setting('current_test') is not None:
                 t.sleep()
+
                 for lock in self.locks:
                     lock()
+
                 for sensor in self.test['inputs']:
                     value = self.hardware.read(sensor)
                     self.db.save_test_sensor_value(
@@ -77,6 +79,7 @@ class SystemResponseTest(object):
                         value,
                         t.elapsed(),
                         start_time)
+
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
                         self.hardware.write(port, point['y'])
@@ -88,10 +91,9 @@ class SystemResponseTest(object):
                             t.elapsed(),
                             start_time)
                         break
-                if self.db.get_setting('current_test') is None:
-                    raise Exception('Interrupted')
         except Exception as e:
-            pass
+            print(e)
+            self.db.set_setting('test_error', str(e))
 
         self.db.save_test_sensor_value(
             self.test['name'],

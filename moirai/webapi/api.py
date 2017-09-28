@@ -90,6 +90,18 @@ class APIv1:
         self.app.add_url_rule('/live_graph/test/export',
                               view_func=self.live_graph_export_mat,
                               methods=['POST'])
+        self.app.add_url_rule('/controllers',
+                              view_func=self.controller_set,
+                              methods=['POST'])
+        self.app.add_url_rule('/controllers',
+                              view_func=self.controller_get,
+                              methods=['GET'])
+        self.app.add_url_rule('/controllers/run',
+                              view_func=self.controller_run,
+                              methods=['POST'])
+        self.app.add_url_rule('/controllers/stop',
+                              view_func=self.controller_stop,
+                              methods=['GET'])
         self.app.add_url_rule('/dev/gen_dummy_tests',
                               view_func=self.dev_gen_dummy_tests,
                               methods=['GET'])
@@ -248,6 +260,7 @@ class APIv1:
         """
         if not self.verify_token():
             return '{}', 403
+
         configuration = request.json
         self.database.set_setting('hardware_configuration', configuration)
         return '{}'
@@ -560,6 +573,109 @@ class APIv1:
         f = open(file_path, 'rb')
 
         return send_file(f, as_attachment=True, attachment_filename='data.mat')
+
+    def controller_set(self):
+        """
+        Saves a controller. It must be a POST request with following body:
+
+        [{
+            id: number
+            name: string
+            tau: number
+            runTime: number
+            before: string
+            controller: string
+            after: string
+            inputs: string[]
+        }]
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        cs = request.json
+        self.database.set_setting('controllers', cs)
+        return '{}'
+
+    def controller_get(self):
+        """
+        Get saved controllers. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            [{
+                id: number
+                name: string
+                tau: number
+                runTime: number
+                before: string
+                controller: string
+                after: string
+                inputs: string[]
+            }]
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        cs = self.database.get_setting('controllers') or []
+        return json.dumps(cs)
+
+    def controller_run(self):
+        """
+        Runs the given controller. It must be a POST request with the following
+        body:
+
+        {
+            controller: number
+        }
+
+        @returns: On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        controller = request.json['controller']
+        self.ph.send_command("hardware", "run_controller", controller)
+        return '{}'
+
+    def controller_stop(self):
+        """
+        Stops the running controller. It must be a GET request.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        self.database.set_setting('current_test', None)
+
+        return '{}'
 
     def __ports_for_driver(self, driver):
         """
