@@ -59,7 +59,10 @@ setup(name='moirai',
           'appdirs',
           'ahio',
           'Flask',
-          'pymongo'
+          'pymongo',
+          'python-dateutil',
+          'numpy',
+          'scipy'
       ],
       entry_points={
           'console_scripts': [
