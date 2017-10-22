@@ -47,18 +47,23 @@ The lifetime thus becomes:
 """
 
 import hashlib
+import os
 import signal
 import sys
 import time
 from multiprocessing import Pipe, Process
 
+from moirai import __version__
 from moirai import decorators
 from moirai.database import DatabaseV1
+from moirai.installer import install
 
 PROCESSES = {}
 PS = ['webapi', 'hardware']
 PROCESS_TYPE = 'main'
 WEBSOCKET = None
+
+sys.path.append(os.path.join(os.path.abspath(os.sep), 'opt'))
 
 
 def signal_handler(*_):
@@ -136,6 +141,14 @@ def start():
     Entry point of the application
     """
     global PROCESSES, PS
+
+    if '--version' in sys.argv:
+        print(__version__)
+        return
+
+    if '--install' in sys.argv:
+        install()
+        return
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
