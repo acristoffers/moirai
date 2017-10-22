@@ -191,7 +191,7 @@ def install():
                     print(cmd2)
                     print('After that, you need to install snap7.')
                     print('https://sourceforge.net/projects/snap7/files')
-    else:
+    elif osname == 'Windows':
         print('Trying to install MongoDB and snap7...')
         if download_snap7_win():
             print('Downloading MongoDB...')
@@ -210,3 +210,7 @@ def install():
             print('You need to install MongoDB and snap7.')
             print('https://www.mongodb.com')
             print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('You need to install MongoDB and snap7.')
+        print('https://www.mongodb.com')
+        print('https://sourceforge.net/projects/snap7/files')
