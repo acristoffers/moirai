@@ -38,7 +38,7 @@ setup(name='moirai',
       long_description=LONG_DESCRIPTION,
       # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=[
-          'Development Status :: 4 - Beta',
+          'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Education',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: MIT License',
