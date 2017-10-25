@@ -116,81 +116,83 @@ def install():
             print('https://www.mongodb.com')
             print('https://sourceforge.net/projects/snap7/files')
     elif osname == 'Linux':
-        distribution = platform.linux_distribution()[0]
         success = False
-        if len(distribution) > 0:
-            if len(os.popen('which apt-get').read()) > 0:
-                cmd = 'apt-get install -y mongodb-server build-essential p7zip-full'
-                print('Using APT to install dependencies.')
-                print(f'Will now execute: [{cmd}]')
-                result = os.system(cmd)
-                if result == 0:
-                    if download_snap7_linux():
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
+        if len(os.popen('which apt-get').read()) > 0:
+            cmd = 'apt-get install -y mongodb-server build-essential p7zip-full'
+            print('Using APT to install dependencies.')
+            print(f'Will now execute: [{cmd}]')
+            result = os.system(cmd)
+            if result == 0:
+                if download_snap7_linux():
+                    print('Installation finished.')
                 else:
                     print('Something went wrong. Try installing manually:')
-                    print(cmd)
-                    print('After that, you need to install snap7.')
                     print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which dnf').read()) > 0:
-                cmd = 'dnf install -y @development-tools p7zip mongodb-server'
-                print('Using DNF to install dependencies.')
-                print(f'Will now execute: [{cmd}]')
-                result = os.system(cmd)
-                if result == 0:
-                    if download_snap7_linux():
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
+            else:
+                print('Something went wrong. Try installing manually:')
+                print(cmd)
+                print('After that, you need to install snap7.')
+                print('https://sourceforge.net/projects/snap7/files')
+        elif len(os.popen('which dnf').read()) > 0:
+            cmd = 'dnf install -y @development-tools p7zip mongodb-server'
+            print('Using DNF to install dependencies.')
+            print(f'Will now execute: [{cmd}]')
+            result = os.system(cmd)
+            if result == 0:
+                if download_snap7_linux():
+                    print('Installation finished.')
                 else:
                     print('Something went wrong. Try installing manually:')
-                    print(cmd)
-                    print('After that, you need to install snap7.')
                     print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which yum').read()) > 0:
-                cmd1 = 'yum groupinstall -y "Development Tools" "Development Libraries"'
-                cmd2 = 'yum install -y p7zip mongodb-server'
-                print('Using YUM to install dependencies.')
-                print(f'Will now execute: [{cmd1}]')
-                result1 = os.system(cmd1)
-                print(f'Will now execute: [{cmd2}]')
-                result2 = os.system(cmd2)
-                if result1 == 0 and result2 == 0:
-                    if download_snap7_linux():
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
+            else:
+                print('Something went wrong. Try installing manually:')
+                print(cmd)
+                print('After that, you need to install snap7.')
+                print('https://sourceforge.net/projects/snap7/files')
+        elif len(os.popen('which yum').read()) > 0:
+            cmd1 = 'yum groupinstall -y "Development Tools" "Development Libraries"'
+            cmd2 = 'yum install -y p7zip mongodb-server'
+            print('Using YUM to install dependencies.')
+            print(f'Will now execute: [{cmd1}]')
+            result1 = os.system(cmd1)
+            print(f'Will now execute: [{cmd2}]')
+            result2 = os.system(cmd2)
+            if result1 == 0 and result2 == 0:
+                if download_snap7_linux():
+                    print('Installation finished.')
                 else:
                     print('Something went wrong. Try installing manually:')
-                    print(cmd1)
-                    print(cmd2)
-                    print('After that, you need to install snap7.')
                     print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which zypper').read()) > 0:
-                cmd1 = 'zypper in -t devel_basis'
-                cmd2 = 'zypper in mongodb p7zip'
-                print('Using Zypper to install dependencies.')
-                print(f'Will now execute: [{cmd1}]')
-                result1 = os.system(cmd1)
-                print(f'Will now execute: [{cmd2}]')
-                result2 = os.system(cmd2)
-                if result1 == 0 and result2 == 0:
-                    if download_snap7_linux():
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
+            else:
+                print('Something went wrong. Try installing manually:')
+                print(cmd1)
+                print(cmd2)
+                print('After that, you need to install snap7.')
+                print('https://sourceforge.net/projects/snap7/files')
+        elif len(os.popen('which zypper').read()) > 0:
+            cmd1 = 'zypper in -t devel_basis'
+            cmd2 = 'zypper in mongodb p7zip'
+            print('Using Zypper to install dependencies.')
+            print(f'Will now execute: [{cmd1}]')
+            result1 = os.system(cmd1)
+            print(f'Will now execute: [{cmd2}]')
+            result2 = os.system(cmd2)
+            if result1 == 0 and result2 == 0:
+                if download_snap7_linux():
+                    print('Installation finished.')
                 else:
                     print('Something went wrong. Try installing manually:')
-                    print(cmd1)
-                    print(cmd2)
-                    print('After that, you need to install snap7.')
                     print('https://sourceforge.net/projects/snap7/files')
+            else:
+                print('Something went wrong. Try installing manually:')
+                print(cmd1)
+                print(cmd2)
+                print('After that, you need to install snap7.')
+                print('https://sourceforge.net/projects/snap7/files')
+        else:
+            print('You need to install MongoDB and snap7.')
+            print('https://www.mongodb.com')
+            print('https://sourceforge.net/projects/snap7/files')
     elif osname == 'Windows':
         print('Trying to install MongoDB and snap7...')
         if download_snap7_win():
