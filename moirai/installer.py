@@ -118,8 +118,8 @@ def install():
     elif osname == 'Linux':
         success = False
         if len(os.popen('which zypper').read()) > 0:
-            cmd1 = 'zypper in -t devel_basis'
-            cmd2 = 'zypper in mongodb p7zip'
+            cmd1 = 'zypper -n in -t pattern devel_basis'
+            cmd2 = 'zypper -n in mongodb p7zip'
             print('Using Zypper to install dependencies.')
             print(f'Will now execute: [{cmd1}]')
             result1 = os.system(cmd1)
