@@ -560,8 +560,8 @@ class APIv1:
         v = request.json['variables']
 
         ds = self.database.get_test_data(test, start_time, 0)
-        keys = list(set([o['sensor'] for o in ds]))
-        ts = list(set([p['time'] for p in ds]))
+        keys = list({d['sensor'] for d in ds})
+        ts = [d['time'] for d in ds if d['sensor'] == keys[0]]
         ds = {v[k]: [p['value'] for p in ds if p['sensor'] == k] for k in keys}
         ds['t'] = ts
 
