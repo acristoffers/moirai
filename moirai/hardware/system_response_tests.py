@@ -67,6 +67,7 @@ class SystemResponseTest(object):
         try:
             while self.db.get_setting('current_test') is not None:
                 t.sleep()
+                t_elapsed = t.elapsed()
 
                 for lock in self.locks:
                     lock()
@@ -77,7 +78,7 @@ class SystemResponseTest(object):
                         self.test['name'],
                         sensor,
                         value,
-                        t.elapsed(),
+                        t_elapsed,
                         start_time)
 
                 for point in self.test['points']:
@@ -88,7 +89,7 @@ class SystemResponseTest(object):
                             self.test['name'],
                             port,
                             point['y'],
-                            t.elapsed(),
+                            t_elapsed,
                             start_time)
                         break
         except Exception as e:
