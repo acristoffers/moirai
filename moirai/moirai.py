@@ -147,7 +147,7 @@ def start():
         return
 
     if '--install' in sys.argv:
-        install()
+        install('--sudo' in sys.argv)
         return
 
     # Catches SIGINT (CTRL+C)
