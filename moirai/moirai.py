@@ -146,6 +146,17 @@ def start():
         print(__version__)
         return
 
+    if '--help' in sys.argv:
+        print(fr'Moirai version {__version__}')
+        print(r'Options:')
+        print('\t--version Prints version')
+        print('\t--install Tries to install dependencies.')
+        print('\t--sudo Uses sudo to install packages. You still need write access to /opt.')
+        print('\t--set-password=pwd Sets the password to pwd')
+        print('')
+        print('\tThe installer does not behave well with PyENV')
+        return
+
     if '--install' in sys.argv:
         install('--sudo' in sys.argv)
         return
