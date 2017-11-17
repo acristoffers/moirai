@@ -25,6 +25,8 @@ import datetime
 
 import numpy as np
 import math
+import threading
+import time
 
 from moirai.database import DatabaseV1
 from moirai.hardware.configured_hardware import ConfiguredHardware
@@ -41,6 +43,7 @@ class Controller(object):
         self.hardware = ConfiguredHardware()
         configuration = self.db.get_setting('hardware_configuration')
         self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.running = True
 
     def interlock(self, lock):
         code = compile('y=%s' % lock['expression'], '_string_', 'exec')
@@ -53,6 +56,13 @@ class Controller(object):
                 self.hardware.write(lock['actuator'], lock['actuatorValue'])
                 raise Exception('Interlock')
         return f
+
+    def lock_forever(self):
+        interval = float(self.cs['tau'])
+        while self.running:
+            time.sleep(interval)
+            for lock in self.locks:
+                lock()
 
     def run(self):
         run_time = int(self.cs['runTime'])
@@ -68,6 +78,10 @@ class Controller(object):
             before = compile(self.cs['before'], '_string_', 'exec')
             controller = compile(self.cs['controller'], '_string_', 'exec')
             after = compile(self.cs['after'], '_string_', 'exec')
+
+            thread = threading.Thread(target=self.lock_forever)
+            thread.start()
+            thread.isDaemon = True
 
             inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
             plocals = {
@@ -89,9 +103,6 @@ class Controller(object):
             while self.db.get_setting('current_test') is not None:
                 t.sleep()
                 time = t.elapsed()
-
-                for lock in self.locks:
-                    lock()
 
                 inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
                 plocals = {
@@ -140,3 +151,4 @@ class Controller(object):
                 self.hardware.write(actuator, value)
 
         self.db.set_setting('current_test', None)
+        self.running = False
