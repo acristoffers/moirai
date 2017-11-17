@@ -47,7 +47,8 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def download_snap7_linux():
+def download_snap7_linux(use_sudo):
+    sudo = 'sudo' if use_sudo else ''
     arch = {
         'x64': 'x86_64',
         'ia32': 'i386',
@@ -68,6 +69,7 @@ def download_snap7_linux():
         lib = f'snap7-full-1.4.2/build/bin/{arch}-linux/libsnap7.so'
         shutil.copy(lib, os.path.join(opt, 'libsnap7.so'))
         os.chmod(os.path.join(opt, 'libsnap7.so'), 0o777)
+        os.system(f'{sudo} ldconfig /opt')
         os.remove('snap7.zip')
         shutil.rmtree('snap7-full-1.4.2')
         return True
@@ -128,7 +130,7 @@ def install(use_sudo=False):
                 print(f'Will now execute: [{cmd2}]')
                 result2 = os.system(cmd2)
                 if result1 == 0 and result2 == 0:
-                    if download_snap7_linux():
+                    if download_snap7_linux(use_sudo):
                         print('Installation finished.')
                     else:
                         print('Something went wrong. Try installing manually:')
@@ -145,7 +147,7 @@ def install(use_sudo=False):
                 print(f'Will now execute: [{cmd}]')
                 result = os.system(cmd)
                 if result == 0:
-                    if download_snap7_linux():
+                    if download_snap7_linux(use_sudo):
                         print('Installation finished.')
                     else:
                         print('Something went wrong. Try installing manually:')
@@ -161,7 +163,7 @@ def install(use_sudo=False):
                 print(f'Will now execute: [{cmd}]')
                 result = os.system(cmd)
                 if result == 0:
-                    if download_snap7_linux():
+                    if download_snap7_linux(use_sudo):
                         print('Installation finished.')
                     else:
                         print('Something went wrong. Try installing manually:')
@@ -180,7 +182,7 @@ def install(use_sudo=False):
                 print(f'Will now execute: [{cmd2}]')
                 result2 = os.system(cmd2)
                 if result1 == 0 and result2 == 0:
-                    if download_snap7_linux():
+                    if download_snap7_linux(use_sudo):
                         print('Installation finished.')
                     else:
                         print('Something went wrong. Try installing manually:')
