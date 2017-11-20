@@ -44,6 +44,8 @@ class Controller(object):
         configuration = self.db.get_setting('hardware_configuration')
         self.locks = [self.interlock(l) for l in configuration['interlocks']]
         self.running = True
+        self.lock = threading.Lock()
+        self.after = None
 
     def interlock(self, lock):
         code = compile('y=%s' % lock['expression'], '_string_', 'exec')
@@ -61,8 +63,28 @@ class Controller(object):
         interval = float(self.cs['tau'])
         while self.running:
             time.sleep(interval)
-            for lock in self.locks:
-                lock()
+            self.lock.acquire()
+            try:
+                for lock in self.locks:
+                    lock()
+            except:
+                self.running = False
+                if self.after is not None:
+                    ins = self.cs['inputs']
+                    inputs = {s: self.hardware.read(s) for s in ins}
+                    plocals = {
+                        'inputs': inputs,
+                        'outputs': dict()
+                    }
+                    pglobals = {
+                        'np': np,
+                        'math': math
+                    }
+                    exec(self.after, pglobals, plocals)
+
+                    for actuator, value in plocals['outputs'].items():
+                        self.hardware.write(actuator, value)
+            self.lock.release()
 
     def run(self):
         run_time = int(self.cs['runTime'])
@@ -73,11 +95,13 @@ class Controller(object):
         self.db.set_setting('current_test', self.cs['name'])
 
         after = None
+        self.running = True
 
         try:
             before = compile(self.cs['before'], '_string_', 'exec')
             controller = compile(self.cs['controller'], '_string_', 'exec')
             after = compile(self.cs['after'], '_string_', 'exec')
+            self.after = after
 
             thread = threading.Thread(target=self.lock_forever)
             thread.start()
@@ -100,21 +124,26 @@ class Controller(object):
             for k, v in plocals['outputs'].items():
                 self.hardware.write(k, v)
 
-            while self.db.get_setting('current_test') is not None:
+            while self.db.get_setting('current_test') is not None and self.running:
                 t.sleep()
                 time = t.elapsed()
 
+                self.lock.acquire()
                 inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
+                self.lock.release()
+
                 plocals = {
                     'inputs': inputs,
                     'outputs': dict(),
                     's': state,
                     'log': dict()
                 }
+
                 pglobals = {
                     'np': np,
                     'math': math
                 }
+
                 exec(controller, pglobals, plocals)
 
                 plocals['log'] = {
@@ -123,12 +152,14 @@ class Controller(object):
                     **plocals['outputs']
                 }
 
+                self.lock.acquire()
                 for k, v in plocals['outputs'].items():
                     self.hardware.write(k, v)
 
                 for k, v in plocals['log'].items():
                     cid = self.cs['name']
                     self.db.save_test_sensor_value(cid, k, v, time, start_time)
+                self.lock.release()
 
                 state = plocals['s']
         except Exception as e:
