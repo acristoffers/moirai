@@ -136,7 +136,8 @@ class Controller(object):
                     'inputs': inputs,
                     'outputs': dict(),
                     's': state,
-                    'log': dict()
+                    'log': dict(),
+                    't': time
                 }
 
                 pglobals = {
@@ -170,7 +171,8 @@ class Controller(object):
             inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
             plocals = {
                 'inputs': inputs,
-                'outputs': dict()
+                'outputs': dict(),
+                't': time
             }
             pglobals = {
                 'np': np,
