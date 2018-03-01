@@ -28,6 +28,9 @@ import math
 import threading
 import time
 
+import sys
+import os
+
 from moirai.database import DatabaseV1
 from moirai.hardware.configured_hardware import ConfiguredHardware
 from moirai.hardware.timer import Timer
@@ -74,13 +77,11 @@ class Controller(object):
                     inputs = {s: self.hardware.read(s) for s in ins}
                     plocals = {
                         'inputs': inputs,
-                        'outputs': dict()
-                    }
-                    pglobals = {
+                        'outputs': dict(),
                         'np': np,
                         'math': math
                     }
-                    exec(self.after, pglobals, plocals)
+                    exec(self.after, plocals, plocals)
 
                     for actuator, value in plocals['outputs'].items():
                         self.hardware.write(actuator, value)
@@ -111,13 +112,12 @@ class Controller(object):
             plocals = {
                 'inputs': inputs,
                 'outputs': dict(),
-                's': dict()
-            }
-            pglobals = {
+                's': dict(),
                 'np': np,
                 'math': math
             }
-            exec(before, pglobals, plocals)
+
+            exec(before, plocals, plocals)
 
             state = plocals['s']
 
@@ -137,15 +137,12 @@ class Controller(object):
                     'outputs': dict(),
                     's': state,
                     'log': dict(),
-                    't': time
-                }
-
-                pglobals = {
+                    't': time,
                     'np': np,
                     'math': math
                 }
 
-                exec(controller, pglobals, plocals)
+                exec(controller, plocals, plocals)
 
                 plocals['log'] = {
                     **plocals['log'],
@@ -165,6 +162,9 @@ class Controller(object):
                 state = plocals['s']
         except Exception as e:
             print(e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             self.db.set_setting('test_error', str(e))
 
         if after is not None:
@@ -172,13 +172,11 @@ class Controller(object):
             plocals = {
                 'inputs': inputs,
                 'outputs': dict(),
-                't': time
-            }
-            pglobals = {
                 'np': np,
                 'math': math
             }
-            exec(after, pglobals, plocals)
+
+            exec(after, plocals, plocals)
 
             for actuator, value in plocals['outputs'].items():
                 self.hardware.write(actuator, value)
