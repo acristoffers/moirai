@@ -24,15 +24,6 @@ import ahio
 
 from moirai.database import DatabaseV1
 
-# Port types:
-# export enum Types {
-#     Digital = 1,
-#     Analog = 2,
-#     Input = 4,
-#     Output = 8,
-#     PWM = 16
-# }
-
 
 class ConfiguredHardware(object):
     def __init__(self):
@@ -48,7 +39,10 @@ class ConfiguredHardware(object):
             self.driver.setup(**args)
 
         for port in config['ports']:
-            self.driver.map_pin(port['id'], port['name'])
+            pin = port['name']
+            if hasattr(self.driver, 'Pins'):
+                pin = self.driver.Pins(pin)
+            self.driver.map_pin(port['id'], pin)
 
         self.inputs = [p for p in config['ports'] if p['type'] & 4]
         ps = [p['id'] for p in self.inputs]
