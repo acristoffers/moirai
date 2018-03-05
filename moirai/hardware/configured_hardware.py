@@ -24,6 +24,15 @@ import ahio
 
 from moirai.database import DatabaseV1
 
+# Port types:
+# export enum Types {
+#     Digital = 1,
+#     Analog = 2,
+#     Input = 4,
+#     Output = 8,
+#     PWM = 16
+# }
+
 
 class ConfiguredHardware(object):
     def __init__(self):
@@ -54,24 +63,24 @@ class ConfiguredHardware(object):
         self.inputs = {**self.inputs, **cs}
 
         self.outputs = [p for p in config['ports'] if p['type'] & (8 | 16)]
-        ps = [p['id'] for p in self.outputs]
-        self.outputs = {p['alias']: lambda x, id=p['id']: self.driver.write(id, x)
+        ps = {p['id']: p['type'] for p in self.outputs}
+        self.outputs = {p['alias']: lambda x, id=p['id'], t=p['type']: self.driver.write(id, x, t == 16)
                         for p in self.outputs}
-        cs = [c for c in config['calibrations'] if c['port'] in ps]
-        cs = {c['alias']: lambda x, p=c['port'], f=c['formula']: self._write_calibrated(p, f, x)
+        cs = [c for c in config['calibrations'] if c['port'] in ps.keys()]
+        cs = {c['alias']: lambda x, p=c['port'], f=c['formula'], t=ps[c['port']]: self._write_calibrated(p, f, x, t == 16)
               for c in cs}
         self.outputs = {**self.outputs, **cs}
 
     def _read_calibrated(self, port, formula):
         local = {'x': self.driver.read(port)}
         code = compile('y=%s' % formula, '_string_', 'exec')
-        exec(code, {}, local)
+        exec(code, local, local)
         return local['y']
 
-    def _write_calibrated(self, port, formula, value):
+    def _write_calibrated(self, port, formula, value, pwm):
         local = {'x': value}
-        exec('y=%s' % formula, {}, local)
-        self.driver.write(port, local['y'])
+        exec('y=%s' % formula, local, local)
+        self.driver.write(port, local['y'], pwm)
 
     def read(self, port):
         f = self.inputs.get(port, None)
