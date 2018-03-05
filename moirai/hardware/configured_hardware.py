@@ -64,10 +64,10 @@ class ConfiguredHardware(object):
 
         self.outputs = [p for p in config['ports'] if p['type'] & (8 | 16)]
         ps = {p['id']: p['type'] for p in self.outputs}
-        self.outputs = {p['alias']: lambda x, id=p['id'], t=p['type']: self.driver.write(id, x, t == 16)
+        self.outputs = {p['alias']: lambda x, id=p['id'], t=p['type']: self.driver.write(id, x, t & 16)
                         for p in self.outputs}
         cs = [c for c in config['calibrations'] if c['port'] in ps.keys()]
-        cs = {c['alias']: lambda x, p=c['port'], f=c['formula'], t=ps[c['port']]: self._write_calibrated(p, f, x, t == 16)
+        cs = {c['alias']: lambda x, p=c['port'], f=c['formula'], t=ps[c['port']]: self._write_calibrated(p, f, x, t & 16)
               for c in cs}
         self.outputs = {**self.outputs, **cs}
 
