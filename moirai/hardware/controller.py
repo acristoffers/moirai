@@ -182,4 +182,5 @@ class Controller(object):
                 self.hardware.write(actuator, value)
 
         self.db.set_setting('current_test', None)
+        self.db.close()
         self.running = False

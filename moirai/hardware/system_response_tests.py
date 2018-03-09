@@ -107,3 +107,4 @@ class SystemResponseTest(object):
             self.hardware.write(o['alias'], o['value'])
 
         self.db.set_setting('current_test', None)
+        self.db.close()

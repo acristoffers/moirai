@@ -40,6 +40,9 @@ class DatabaseV1(object):
         self.db = self.client.moirai
         self.token_lifespan = 30 * 60
 
+    def close(self):
+        self.client.close()
+
     def settings_collection(self):
         return self.db.settings
 
