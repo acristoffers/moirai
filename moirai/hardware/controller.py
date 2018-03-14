@@ -28,8 +28,9 @@ import math
 import threading
 import time
 
-import sys
 import os
+import sys
+import traceback
 
 from moirai.database import DatabaseV1
 from moirai.hardware.configured_hardware import ConfiguredHardware
@@ -51,12 +52,32 @@ class Controller(object):
         self.after = None
 
     def interlock(self, lock):
-        code = compile('y=%s' % lock['expression'], '_string_', 'exec')
+        try:
+            code = compile('y=%s' % lock['expression'], '_string_', 'exec')
+        except SyntaxError as err:
+            error = err.__class__.__name__
+            detail = err.args[0]
+            line = err.lineno
+            error_string = '%s on %s:%s: %s' % (error, scope, line, detail)
+            print(error_string)
+            self.db.set_setting('test_error', error_string)
+            self.running = False
+            return
 
         def f(code=code, lock=lock):
-            value = self.hardware.read(lock['sensor'])
-            scope = {'x': value}
-            exec(code, None, scope)
+            try:
+                value = self.hardware.read(lock['sensor'])
+                scope = {'x': value}
+                exec(code, None, scope)
+            except Exception as err:
+                error = err.__class__.__name__
+                detail = err.args[0]
+                cl, exc, tb = sys.exc_info()
+                tb = self.stringify_tb(traceback.extract_tb(tb))
+                error_string = '%s: %s\n%s' % (error, detail, tb)
+                print(error_string)
+                self.db.set_setting('test_error', error_string)
+                raise Exception('Interlock')
             if scope['y']:
                 self.hardware.write(lock['actuator'], lock['actuatorValue'])
                 raise Exception('Interlock')
@@ -71,20 +92,30 @@ class Controller(object):
                 for lock in self.locks:
                     lock()
             except:
-                self.running = False
-                if self.after is not None:
-                    ins = self.cs['inputs']
-                    inputs = {s: self.hardware.read(s) for s in ins}
-                    plocals = {
-                        'inputs': inputs,
-                        'outputs': dict(),
-                        'np': np,
-                        'math': math
-                    }
-                    exec(self.after, plocals, plocals)
+                try:
+                    self.running = False
+                    if self.after is not None:
+                        ins = self.cs['inputs']
+                        inputs = {s: self.hardware.read(s) for s in ins}
+                        plocals = {
+                            'inputs': inputs,
+                            'outputs': dict(),
+                            'np': np,
+                            'math': math
+                        }
 
-                    for actuator, value in plocals['outputs'].items():
-                        self.hardware.write(actuator, value)
+                        exec(self.after, plocals, plocals)
+
+                        for actuator, value in plocals['outputs'].items():
+                            self.hardware.write(actuator, value)
+                except Exception as err:
+                    error = err.__class__.__name__
+                    detail = err.args[0]
+                    cl, exc, tb = sys.exc_info()
+                    tb = self.stringify_tb(traceback.extract_tb(tb))
+                    error_string = '%s: %s\n%s' % (error, detail, tb)
+                    print(error_string)
+                    self.db.set_setting('test_error', error_string)
             self.lock.release()
 
     def run(self):
@@ -99,9 +130,9 @@ class Controller(object):
         self.running = True
 
         try:
-            before = compile(self.cs['before'], '_string_', 'exec')
-            controller = compile(self.cs['controller'], '_string_', 'exec')
-            after = compile(self.cs['after'], '_string_', 'exec')
+            before = compile(self.cs['before'], 'before', 'exec')
+            controller = compile(self.cs['controller'], 'controller', 'exec')
+            after = compile(self.cs['after'], 'after', 'exec')
             self.after = after
 
             thread = threading.Thread(target=self.lock_forever)
@@ -160,27 +191,51 @@ class Controller(object):
                 self.lock.release()
 
                 state = plocals['s']
-        except Exception as e:
-            print(e)
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(exc_type, fname, exc_tb.tb_lineno)
-            self.db.set_setting('test_error', str(e))
+        except SyntaxError as err:
+            error = err.__class__.__name__
+            detail = err.args[0]
+            line = err.lineno
+            error_string = '%s on %s:%s: %s' % (error, scope, line, detail)
+            print(error_string)
+            self.db.set_setting('test_error', error_string)
+        except Exception as err:
+            error = err.__class__.__name__
+            detail = err.args[0]
+            cl, exc, tb = sys.exc_info()
+            tb = self.stringify_tb(traceback.extract_tb(tb))
+            error_string = '%s: %s\n%s' % (error, detail, tb)
+            print(error_string)
+            self.db.set_setting('test_error', error_string)
 
-        if after is not None:
-            inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
-            plocals = {
-                'inputs': inputs,
-                'outputs': dict(),
-                'np': np,
-                'math': math
-            }
+        try:
+            if after is not None:
+                inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
+                plocals = {
+                    'inputs': inputs,
+                    'outputs': dict(),
+                    'np': np,
+                    'math': math
+                }
 
-            exec(after, plocals, plocals)
+                exec(after, plocals, plocals)
 
-            for actuator, value in plocals['outputs'].items():
-                self.hardware.write(actuator, value)
+                for actuator, value in plocals['outputs'].items():
+                    self.hardware.write(actuator, value)
+        except Exception as err:
+            error = err.__class__.__name__
+            detail = err.args[0]
+            cl, exc, tb = sys.exc_info()
+            tb = self.stringify_tb(traceback.extract_tb(tb))
+            error_string = '%s: %s\n%s' % (error, detail, tb)
+            print(error_string)
+            self.db.set_setting('test_error', error_string)
 
         self.db.set_setting('current_test', None)
         self.db.close()
         self.running = False
+
+    def stringify_tb(self, tb):
+        msg = 'Traceback:\n\t'
+        msg += '\n\t'.join(['%s:%s in %s' % (t.filename, t.lineno, t.name)
+                            for t in tb])
+        return msg
