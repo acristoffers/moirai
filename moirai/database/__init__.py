@@ -38,7 +38,7 @@ class DatabaseV1(object):
     def __init__(self):
         self.client = MongoClient()
         self.db = self.client.moirai
-        self.token_lifespan = 30 * 60
+        self.token_lifespan = 24 * 3600
 
     def close(self):
         self.client.close()
