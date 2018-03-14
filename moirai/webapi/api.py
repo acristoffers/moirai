@@ -23,6 +23,7 @@
 import hashlib
 import json
 import dateutil.parser
+import logging
 import os.path
 import tempfile
 import scipy.io as io
@@ -44,6 +45,7 @@ class APIv1:
         self.database = DatabaseV1()
         self.hardware = Hardware()
         self.ph = processHandler
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
     def run(self):
         """
