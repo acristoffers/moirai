@@ -59,13 +59,13 @@ class DatabaseV1(object):
             return None
 
     def verify_token(self, token):
+        now = time.time()
+        span = self.token_lifespan
         ts = self.get_setting('tokens')
-        ts = [t for t in ts if t['token'] == token and
-              time.time() - t['time'] < self.token_lifespan]
-        if len(ts) > 0:
-            ts = self.get_setting('tokens')
+        vs = [t for t in ts if t['token'] == token and now - t['time'] < span]
+        if len(vs) > 0:
             ts = [t for t in ts if t['token'] != token]
-            ts.append({'token': token, 'time': time.time()})
+            ts.append({'token': token, 'time': now})
             self.set_setting('tokens', ts)
             return True
         return False
