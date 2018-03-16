@@ -107,7 +107,7 @@ class APIv1:
         self.app.add_url_rule('/dev/gen_dummy_tests',
                               view_func=self.dev_gen_dummy_tests,
                               methods=['GET'])
-        self.app.run(host="0.0.0.0")
+        self.app.run(host="0.0.0.0", port=5000, threaded=True)
 
     def verify_token(self):
         """
