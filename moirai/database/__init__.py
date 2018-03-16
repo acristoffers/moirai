@@ -94,10 +94,23 @@ class DatabaseV1(object):
 
     def list_test_data(self):
         db = self.db.test_sensor_values
-        cursor = db.find(projection=['test', 'start_time'])
-        tests = [{'name': o['test'], 'date': o['start_time']} for o in cursor]
-        dates = {test['date']: test for test in tests}
-        return dates.values()
+        cursor = db.aggregate([
+            {
+                '$group': {
+                    '_id': {
+                        'name': '$test',
+                        'date': '$start_time'
+                    }
+                }
+            },
+            {
+                '$replaceRoot': {
+                    'newRoot': "$_id"
+                }
+            }
+        ])
+
+        return list(cursor)
 
     def get_test_data(self, test, start_time, skip=0):
         db = self.db.test_sensor_values
