@@ -39,6 +39,7 @@ class DatabaseV1(object):
         self.client = MongoClient()
         self.db = self.client.moirai
         self.token_lifespan = 24 * 3600
+        self.__create_indexes()
 
     def close(self):
         self.client.close()
@@ -96,6 +97,13 @@ class DatabaseV1(object):
         db = self.db.test_sensor_values
         cursor = db.aggregate([
             {
+                '$match': {
+                    'time': {
+                        '$lt': 1
+                    }
+                }
+            },
+            {
                 '$group': {
                     '_id': {
                         'name': '$test',
@@ -115,21 +123,40 @@ class DatabaseV1(object):
     def get_test_data(self, test, start_time, skip=0):
         db = self.db.test_sensor_values
 
-        cursor = db.find({
-            'test': test,
-            'start_time': start_time
-        }, skip=skip, sort=[('time', 1)])
+        cursor = db.aggregate([
+            {
+                '$match': {
+                    'test': test,
+                    'start_time': start_time
+                }
+            },
+            {
+                '$sort': {
+                    'time': 1
+                }
+            },
+            {
+                '$skip': skip
+            },
+            {
+                '$project': {
+                    'sensor': 1,
+                    'time': 1,
+                    'value': 1,
+                    '_id': 0
+                }
+            }
+        ])
 
-        points = [{
-            'sensor': o['sensor'],
-            'time': o['time'],
-            'value': o['value']
-        } for o in cursor]
-
-        return points
+        return list(cursor)
 
     def remove_test(self, test, start_time):
         self.db.test_sensor_values.delete_many({
             'test': test,
             'start_time': start_time
         })
+
+    def __create_indexes(self):
+        self.db.test_sensor_values.create_index('time', name='time')
+        self.db.test_sensor_values.create_index('st', name='start_time')
+        self.db.test_sensor_values.create_index('test', name='test')
