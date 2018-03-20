@@ -112,8 +112,10 @@ class DatabaseV1(object):
                 }
             },
             {
-                '$replaceRoot': {
-                    'newRoot': "$_id"
+                '$project': {
+                    '_id': 0,
+                    'name': '$_id.name',
+                    'date': '$_id.date'
                 }
             }
         ])
