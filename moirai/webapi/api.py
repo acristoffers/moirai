@@ -561,10 +561,10 @@ class APIv1:
         start_time = dateutil.parser.parse(request.json['start_time'])
         v = request.json['variables']
 
-        ds = self.database.get_test_data(test, start_time, 0)
-        keys = list({d['sensor'] for d in ds})
-        ts = [d['time'] for d in ds if d['sensor'] == keys[0]]
-        ds = {v[k]: [p['value'] for p in ds if p['sensor'] == k] for k in keys}
+        ks = list(v.keys())
+        ds = self.database.get_filtered_test_data(test, start_time, ks)
+        ts = ds[0]['time']
+        ds = {d['sensor']: d['values'] for d in ds}
         ds['t'] = ts
 
         directory = tempfile.gettempdir()

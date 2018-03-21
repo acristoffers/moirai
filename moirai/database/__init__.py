@@ -152,6 +152,47 @@ class DatabaseV1(object):
 
         return list(cursor)
 
+    def get_filtered_test_data(self, test, start_time, sensors):
+        db = self.db.test_sensor_values
+
+        cursor = db.aggregate([
+            {
+                '$match': {
+                    'test': test,
+                    'start_time': start_time,
+                    'sensor': {
+                        '$in': sensors
+                    }
+                }
+            },
+            {
+                '$sort': {
+                    'time': 1
+                }
+            },
+            {
+                '$group': {
+                    '_id': '$sensor',
+                    'values': {
+                        '$push': '$value'
+                    },
+                    'time': {
+                        '$push': '$time'
+                    }
+                }
+            },
+            {
+                '$project': {
+                    'time': 1,
+                    'sensor': '$_id',
+                    'values': 1,
+                    '_id': 0
+                }
+            }
+        ])
+
+        return list(cursor)
+
     def remove_test(self, test, start_time):
         self.db.test_sensor_values.delete_many({
             'test': test,
