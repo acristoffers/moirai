@@ -119,11 +119,6 @@ class Controller(object):
             self.lock.release()
 
     def run(self):
-        run_time = int(self.cs['runTime'])
-        interval = float(self.cs['tau'])
-        t = Timer(run_time, interval)
-        start_time = datetime.datetime.utcnow()
-
         self.db.set_setting('current_test', self.cs['name'])
 
         after = None
@@ -155,10 +150,13 @@ class Controller(object):
             for k, v in plocals['outputs'].items():
                 self.hardware.write(k, v)
 
-            while self.db.get_setting('current_test') is not None and self.running:
-                t.sleep()
-                time = t.elapsed()
+            run_time = int(self.cs['runTime'])
+            interval = float(self.cs['tau'])
+            t = Timer(run_time, interval)
+            start_time = datetime.datetime.utcnow()
+            time = 0
 
+            while self.db.get_setting('current_test') is not None and self.running:
                 self.lock.acquire()
                 inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
                 self.lock.release()
@@ -191,6 +189,9 @@ class Controller(object):
                 self.lock.release()
 
                 state = plocals['s']
+
+                t.sleep()
+                time = t.elapsed()
         except SyntaxError as err:
             error = err.__class__.__name__
             detail = err.args[0]
