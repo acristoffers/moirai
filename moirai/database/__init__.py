@@ -44,15 +44,12 @@ class DatabaseV1(object):
     def close(self):
         self.client.close()
 
-    def settings_collection(self):
-        return self.db.settings
-
     def set_setting(self, key, value):
-        db = self.settings_collection()
+        db = self.db.settings
         db.replace_one({"key": key}, {"key": key, "value": value}, upsert=True)
 
     def get_setting(self, key):
-        db = self.settings_collection()
+        db = self.db.settings
         document = db.find_one({"key": key})
         if document:
             return document['value']
@@ -200,6 +197,17 @@ class DatabaseV1(object):
             })
         else:
             self.db.test_sensor_values.delete_many(test)
+
+    def dump_database(self):
+        test_sensor_values = self.db.test_sensor_values.find({}, {'_id': 0})
+        settings = self.db.settings.find({}, {'_id': 0})
+        return list(settings), list(test_sensor_values)
+
+    def restore_database(self, settings, test_sensor_values):
+        self.db.settings.drop()
+        self.db.test_sensor_values.drop()
+        self.db.settings.insert_many(settings)
+        self.db.test_sensor_values.insert_many(test_sensor_values)
 
     def __create_indexes(self):
         self.db.test_sensor_values.create_index('time', name='time')

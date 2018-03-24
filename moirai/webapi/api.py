@@ -20,14 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import io
+import zipfile
 import hashlib
 import json
 import dateutil.parser
 import logging
 import os.path
 import tempfile
-import scipy.io as io
+import scipy.io as sio
 
+from bson import json_util
 from enum import Enum
 
 from flask import Flask, request, send_file
@@ -51,6 +54,10 @@ class APIv1:
         """
         Entry point for the class. Adds routes and starts listening.
         """
+        @self.app.after_request
+        def add_header(response):
+            response.headers['Cache-Control'] = 'no-store'
+            return response
         self.app.add_url_rule('/',
                               view_func=lambda: 'Moirai Control System\n')
         self.app.add_url_rule('/login',
@@ -107,6 +114,12 @@ class APIv1:
         self.app.add_url_rule('/dev/gen_dummy_tests',
                               view_func=self.dev_gen_dummy_tests,
                               methods=['GET'])
+        self.app.add_url_rule('/db/dump',
+                              view_func=self.dump_database,
+                              methods=['GET'])
+        self.app.add_url_rule('/db/restore',
+                              view_func=self.restore_database,
+                              methods=['POST'])
         self.app.run(host="0.0.0.0", port=5000, threaded=True)
 
     def verify_token(self):
@@ -581,7 +594,7 @@ class APIv1:
         directory = tempfile.gettempdir()
         file_path = os.path.join(directory, 'test.mat')
 
-        io.savemat(file_path, ds)
+        sio.savemat(file_path, ds)
 
         f = open(file_path, 'rb')
 
@@ -688,6 +701,69 @@ class APIv1:
 
         self.database.set_setting('current_test', None)
 
+        return '{}'
+
+    def dump_database(self):
+        """
+        Dumps the database collections. Use for backup.
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {
+                settings: []
+                test_sensor_values: []
+            }
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        settings, test_sensor_values = self.database.dump_database()
+        data = {
+            'settings': settings,
+            'test_sensor_values': test_sensor_values
+        }
+        jsondata = json.dumps(data, default=json_util.default)
+
+        del data, settings, test_sensor_values  # release memory
+
+        zbuffer = io.BytesIO()
+        with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
+            zip_file.writestr('dump', jsondata)
+        zbuffer.seek(0, 0)
+        return send_file(zbuffer, as_attachment=True, attachment_filename='dump.zip', mimetype="application/octet-stream")
+
+    def restore_database(self):
+        """
+        Restore the database collections. It must be a POST request with following body:
+
+        [{
+            settings: []
+            test_sensor_values: []
+        }]
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+        db = self.database
+        file = request.files['file']
+        with zipfile.ZipFile(file, "r", zipfile.ZIP_LZMA) as zip_file:
+            jsondata = zip_file.read('dump')
+            d = json.loads(jsondata, object_hook=json_util.object_hook)
+            del jsondata
+            db.restore_database(d['settings'], d['test_sensor_values'])
         return '{}'
 
     def __ports_for_driver(self, driver):
