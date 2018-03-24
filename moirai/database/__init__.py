@@ -193,11 +193,13 @@ class DatabaseV1(object):
 
         return list(cursor)
 
-    def remove_test(self, test, start_time):
-        self.db.test_sensor_values.delete_many({
-            'test': test,
-            'start_time': start_time
-        })
+    def remove_test(self, test):
+        if isinstance(test, list):
+            self.db.test_sensor_values.delete_many({
+                "$or": test
+            })
+        else:
+            self.db.test_sensor_values.delete_many(test)
 
     def __create_indexes(self):
         self.db.test_sensor_values.create_index('time', name='time')

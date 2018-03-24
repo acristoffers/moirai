@@ -516,6 +516,8 @@ class APIv1:
             start_time: string (ISO 8601)
         }
 
+        or a list of elements like that.
+
         @returns:
             On success, HTTP 200 Ok and body:
 
@@ -528,10 +530,19 @@ class APIv1:
         if not self.verify_token():
             return '{}', 403
 
-        test = request.json['test']
-        start_time = dateutil.parser.parse(request.json['start_time'])
+        ts = request.json
+        if isinstance(ts, list):
+            ts = [{
+                'test': t['test'],
+                'start_time': dateutil.parser.parse(t['start_time'])
+            } for t in ts]
+        else:
+            ts = {
+                'test': ts['test'],
+                'start_time': dateutil.parser.parse(ts['start_time'])
+            }
 
-        self.database.remove_test(test, start_time)
+        self.database.remove_test(ts)
 
         return '[]'
 
