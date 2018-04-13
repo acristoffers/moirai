@@ -468,7 +468,6 @@ class APIv1:
         """
         if not self.verify_token():
             return '{}', 403
-
         running_test = self.database.get_setting('current_test')
         tests = self.database.list_test_data()
 
