@@ -23,8 +23,11 @@
 import json
 from pathlib import Path
 
+__printed = False
+
 
 def DatabaseV1():
+    global __printed
     try:
         with open('%s/.moirai.json' % str(Path.home())) as f:
             cfgstr = f.read()
@@ -38,13 +41,18 @@ def DatabaseV1():
                     username = db.get('username', None)
                     password = db.get('password', None)
                     if adapter == 'mongodb':
-                        print('Using MongoDB')
+                        if not __printed:
+                            print('Using MongoDB')
+                            __printed = True
                         from moirai.database.mongodb import DatabaseV1
                         return DatabaseV1()
                     else:
-                        print('Using MySQL')
+                        if not __printed:
+                            print('Using MySQL')
+                            __printed = True
                         from moirai.database.mysql import DatabaseV1
                         return DatabaseV1(host, port, username, password)
     except Exception:
-        from moirai.database.mysql import DatabaseV1
+        print('Falling back to MongoDB...')
+        from moirai.database.mongodb import DatabaseV1
         return DatabaseV1()
