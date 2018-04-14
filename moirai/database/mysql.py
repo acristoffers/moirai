@@ -131,18 +131,18 @@ class DatabaseV1(object):
     def get_filtered_test_data(self, test, start_time, sensors):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
-        query = '''SELECT `sensor`, GROUP_CONCAT(`time`), GROUP_CONCAT(`value`)
-                   FROM moirai.sensor_values
+        query = '''SELECT `time`, `value` FROM moirai.sensor_values
                    WHERE test = %s AND start_time = %s AND sensor = %s'''
         result = []
         for sensor in sensors:
+            s = {
+                'sensor': sensor,
+                'time': [],
+                'values': []
+            }
             cur.execute(query, (test, start_time, sensor))
-            for (s, ts, vs) in cur:
-                result.append({
-                    'time': json.loads('[%s]' % ts),
-                    'sensor': s,
-                    'values': json.loads('[%s]' % vs)
-                })
+            s['time'], s['values'] = zip(*cur)
+            result.append(s)
         cur.close()
         cnx.close()
         return result
