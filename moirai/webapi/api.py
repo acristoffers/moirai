@@ -34,6 +34,7 @@ from bson import json_util
 from enum import Enum
 
 from flask import Flask, request, send_file
+from werkzeug.serving import WSGIRequestHandler
 from moirai.database import DatabaseV1
 from moirai.hardware import Hardware
 
@@ -120,6 +121,7 @@ class APIv1:
         self.app.add_url_rule('/db/restore',
                               view_func=self.restore_database,
                               methods=['POST'])
+        WSGIRequestHandler.protocol_version = "HTTP/1.1"
         self.app.run(host="0.0.0.0", port=5000, threaded=True)
 
     def verify_token(self):
