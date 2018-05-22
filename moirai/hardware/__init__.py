@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import os
 import inspect
 import ahio
 
@@ -81,6 +82,13 @@ class Hardware(object):
         """
         @returns a list of drivers available in this platform.
         """
+        ahio.clear_path()
+        try:
+            paths = os.environ.get['AHIO_PATH'].split(os.pathsep)
+            for path in paths:
+                ahio.add_path(os.path.expanduser(path))
+        except Exception:
+            pass
         return ahio.list_available_drivers()
 
     def driver_has_setup(self, driver_name):
