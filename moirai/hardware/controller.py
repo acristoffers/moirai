@@ -139,6 +139,7 @@ class Controller(object):
                 'inputs': inputs,
                 'outputs': dict(),
                 's': dict(),
+                'dt': float(self.cs['tau']),
                 'np': np,
                 'math': math
             }
@@ -167,6 +168,7 @@ class Controller(object):
                     's': state,
                     'log': dict(),
                     't': time,
+                    'dt': interval,
                     'np': np,
                     'math': math
                 }
