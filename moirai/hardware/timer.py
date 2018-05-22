@@ -38,7 +38,7 @@ class Timer():
         nextTime -= (nextTime % self.interval)
         self.t = time.time()
         dt = nextTime - self.t
-        time.sleep(dt)
+        time.sleep(max(dt, 0))
 
     def elapsed(self):
         return time.time() - self.start
