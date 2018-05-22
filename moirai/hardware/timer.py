@@ -38,7 +38,10 @@ class Timer():
         nextTime -= (nextTime % self.interval)
         self.t = time.time()
         dt = nextTime - self.t
-        time.sleep(max(dt, 0))
+        if dt < 0:
+            dt = 0
+            print('Negative Δt in timer. Interval too short?')
+        time.sleep(dt)
 
     def elapsed(self):
         return time.time() - self.start
