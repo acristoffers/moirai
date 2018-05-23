@@ -34,7 +34,7 @@ import traceback
 
 from moirai.database import DatabaseV1
 from moirai.hardware.configured_hardware import ConfiguredHardware
-from moirai.hardware.timer import Timer
+from moirai.hardware.timer import Timer, Finished
 
 
 class Controller(object):
@@ -194,6 +194,8 @@ class Controller(object):
 
                 t.sleep()
                 time = t.elapsed()
+        except Finished:
+            pass
         except SyntaxError as err:
             error = err.__class__.__name__
             detail = err.args[0]

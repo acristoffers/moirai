@@ -23,6 +23,10 @@
 import time
 
 
+class Finished(Exception):
+    pass
+
+
 class Timer():
     def __init__(self, seconds, interval):
         self.seconds = seconds
@@ -33,7 +37,7 @@ class Timer():
     def sleep(self):
         current_time = time.time()
         if current_time - self.start > self.seconds:
-            raise Exception('Finished')
+            raise Finished('Maximum time reached. Finished.')
         nextTime = current_time + self.interval
         nextTime -= (nextTime % self.interval)
         self.t = time.time()
