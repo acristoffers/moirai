@@ -214,7 +214,7 @@ class DatabaseV1(object):
         cur.execute('USE moirai')
         cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`settings`
                        (`id` INT NOT NULL AUTO_INCREMENT,
-                       `value` VARCHAR(10000) NULL,
+                       `value` LONGTEXT NULL,
                        `key` VARCHAR(100) NOT NULL,
                        PRIMARY KEY (`id`), UNIQUE INDEX `key_UNIQUE` (`id` ASC),
                        UNIQUE INDEX `key_idx` (`key` ASC))
