@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 import ahio
+import os
 
 from moirai.database import DatabaseV1
 
@@ -41,6 +42,15 @@ class ConfiguredHardware(object):
 
         if config is None:
             raise Exception('No hardware configured')
+
+        ahio.clear_path()
+        try:
+            paths = os.environ['AHIO_PATH'].split(os.pathsep)
+            for path in paths:
+                if os.path.exists(path):
+                    ahio.add_path(os.path.expanduser(path))
+        except Exception:
+            pass
 
         self.driver = ahio.new_driver(config['name'])
         if config['has_setup']:
