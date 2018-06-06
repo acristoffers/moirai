@@ -84,9 +84,10 @@ class Hardware(object):
         """
         ahio.clear_path()
         try:
-            paths = os.environ.get['AHIO_PATH'].split(os.pathsep)
+            paths = os.environ['AHIO_PATH'].split(os.pathsep)
             for path in paths:
-                ahio.add_path(os.path.expanduser(path))
+                if os.path.exists(path):
+                    ahio.add_path(os.path.expanduser(path))
         except Exception:
             pass
         return ahio.list_available_drivers()
