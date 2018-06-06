@@ -52,23 +52,21 @@ class SystemResponseTest(object):
         return f
 
     def run(self):
+        self.db.set_setting('current_test', self.test['name'])
+
+        for o in self.test['fixedOutputs']:
+            self.hardware.write(o['alias'], o['value'])
+
         run_time = self.test['points'][-1]['x']
         interval = self.test['logRate']
         t = Timer(run_time, interval)
         port = self.test['output']
         start_time = datetime.datetime.utcnow()
         last_port_value = 0
-
-        self.db.set_setting('current_test', self.test['name'])
-
-        for o in self.test['fixedOutputs']:
-            self.hardware.write(o['alias'], o['value'])
+        t_elapsed = 0
 
         try:
             while self.db.get_setting('current_test') is not None:
-                t.sleep()
-                t_elapsed = t.elapsed()
-
                 for lock in self.locks:
                     lock()
 
@@ -92,6 +90,10 @@ class SystemResponseTest(object):
                             t_elapsed,
                             start_time)
                         break
+
+                t.sleep()
+                t_elapsed = t.elapsed()
+
         except Exception as e:
             print(e)
             self.db.set_setting('test_error', str(e))
