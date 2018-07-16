@@ -759,7 +759,9 @@ class APIv1:
         if not self.verify_token():
             return '{}', 403
         db = self.database
-        file = request.files['file']
+        file = tempfile.TemporaryFile()
+        file.write(request.files['file'].read())
+        file.seek(0)
         with zipfile.ZipFile(file, "r", zipfile.ZIP_LZMA) as zip_file:
             jsondata = zip_file.read('dump')
             d = json.loads(jsondata, object_hook=json_util.object_hook)
