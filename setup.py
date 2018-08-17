@@ -31,41 +31,31 @@ PWD = path.abspath(path.dirname(__file__))
 with codecs.open(path.join(PWD, 'README.md'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
-
-setup(name='moirai',
-      version=moirai.__version__,
-      description='Digital Control Manager Backend',
-      long_description=LONG_DESCRIPTION,
-      # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
-      classifiers=[
-          'Development Status :: 5 - Production/Stable',
-          'Intended Audience :: Education',
-          'Intended Audience :: Science/Research',
-          'License :: OSI Approved :: MIT License',
-          'Natural Language :: English',
-          'Operating System :: OS Independent',
-          'Programming Language :: Python :: 3 :: Only',
-          'Programming Language :: Python :: 3.5',
-          'Programming Language :: Python :: 3.6',
-          'Topic :: Scientific/Engineering :: Human Machine Interfaces'
-      ],
-      keywords='digital control manager',
-      author='Álan Crístoffer',
-      author_email='acristoffers@gmail.com',
-      url='https://www.github.com/acristoffers/moirai',
-      packages=find_packages(),
-      license="MIT",
-      install_requires=[
-          'appdirs',
-          'ahio',
-          'Flask',
-          'pymongo',
-          'python-dateutil',
-          'numpy',
-          'scipy'
-      ],
-      entry_points={
-          'console_scripts': [
-              'moirai = moirai.moirai:start'
-          ]
-      })
+setup(
+    name='moirai',
+    version=moirai.__version__,
+    description='Digital Control Manager Backend',
+    long_description=LONG_DESCRIPTION,
+    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Education',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English', 'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Scientific/Engineering :: Human Machine Interfaces'
+    ],
+    keywords='digital control manager',
+    author='Álan Crístoffer',
+    author_email='acristoffers@gmail.com',
+    url='https://www.github.com/acristoffers/moirai',
+    packages=find_packages(),
+    license="MIT",
+    install_requires=[
+        'appdirs', 'ahio', 'Flask', 'pymongo', 'python-dateutil', 'numpy',
+        'scipy'
+    ],
+    entry_points={'console_scripts': ['moirai = moirai.moirai:start']})

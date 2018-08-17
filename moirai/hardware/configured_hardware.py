@@ -65,11 +65,16 @@ class ConfiguredHardware(object):
 
         self.inputs = [p for p in config['ports'] if p['type'] & 4]
         ps = [p['id'] for p in self.inputs]
-        self.inputs = {p['alias']: lambda id=p['id']: self.driver.read(id)
-                       for p in self.inputs}
+        self.inputs = {
+            p['alias']: lambda id=p['id']: self.driver.read(id)
+            for p in self.inputs
+        }
         cs = [c for c in config['calibrations'] if c['port'] in ps]
-        cs = {c['alias']: lambda p=c['port'], f=c['formula']: self._read_calibrated(p, f)
-              for c in cs}
+        cs = {
+            c['alias']:
+            lambda p=c['port'], f=c['formula']: self._read_calibrated(p, f)
+            for c in cs
+        }
         self.inputs = {**self.inputs, **cs}
 
         self.outputs = [p for p in config['ports'] if p['type'] & (8 | 16)]

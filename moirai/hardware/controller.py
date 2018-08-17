@@ -81,6 +81,7 @@ class Controller(object):
             if scope['y']:
                 self.hardware.write(lock['actuator'], lock['actuatorValue'])
                 raise Exception('Interlock')
+
         return f
 
     def lock_forever(self):
@@ -157,7 +158,8 @@ class Controller(object):
             start_time = datetime.datetime.utcnow()
             time = 0
 
-            while self.db.get_setting('current_test') is not None and self.running:
+            while self.db.get_setting(
+                    'current_test') is not None and self.running:
                 self.lock.acquire()
                 inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
                 self.lock.release()
@@ -241,6 +243,6 @@ class Controller(object):
 
     def stringify_tb(self, tb):
         msg = 'Traceback:\n\t'
-        msg += '\n\t'.join(['%s:%s in %s' % (t.filename, t.lineno, t.name)
-                            for t in tb])
+        msg += '\n\t'.join(
+            ['%s:%s in %s' % (t.filename, t.lineno, t.name) for t in tb])
         return msg

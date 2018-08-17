@@ -50,8 +50,8 @@ def pi_version():
     with open('/proc/cpuinfo', 'r') as infile:
         cpuinfo = infile.read()
     # Match a line like 'Hardware   : BCM2709'
-    match = re.search('^Hardware\s+:\s+(\w+)$', cpuinfo,
-                      flags=re.MULTILINE | re.IGNORECASE)
+    match = re.search(
+        '^Hardware\s+:\s+(\w+)$', cpuinfo, flags=re.MULTILINE | re.IGNORECASE)
     if not match:
         # Couldn't find the hardware, assume it isn't a pi.
         return None
@@ -286,7 +286,8 @@ def install(use_sudo=False):
                 with open('mongo.msi', 'wb') as f:
                     f.write(contents)
                 result = os.system(
-                    r'msiexec.exe /q /i mongo.msi INSTALLLOCATION="C:\Program Files\MongoDB\Server\3.4.9\" ADDLOCAL="all"')
+                    r'msiexec.exe /q /i mongo.msi INSTALLLOCATION="C:\Program Files\MongoDB\Server\3.4.9\" ADDLOCAL="all"'
+                )
                 if result:
                     print('Installation finished.')
                 else:
@@ -302,6 +303,8 @@ def install(use_sudo=False):
             print('https://sourceforge.net/projects/snap7/files')
     except:
         print('Something went wrong. Try installing manually.')
-        print('You need to install MongoDB (or MySQL for Raspberry 32bits) and snap7.')
+        print(
+            'You need to install MongoDB (or MySQL for Raspberry 32bits) and snap7.'
+        )
         print('https://www.mongodb.com')
         print('https://sourceforge.net/projects/snap7/files')

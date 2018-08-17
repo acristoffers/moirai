@@ -129,8 +129,8 @@ class AbstractProcessHandler(object):
         if answer == 'ok':
             self.set_pipe(pkg_to, pipe)
         else:
-            raise RuntimeError('Can not connect %s with %s' %
-                               (pkg_from, pkg_to))
+            raise RuntimeError(
+                'Can not connect %s with %s' % (pkg_from, pkg_to))
 
     def loop(self):
         """

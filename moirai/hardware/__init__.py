@@ -68,11 +68,13 @@ def arguments_of(func):
     """
     @returns the list of arguments of func
     """
+
     def v(name):
         if ps[name].default == inspect.Parameter.empty:
             return {'name': name}
         else:
             return {'name': name, 'default_value': ps[name].default}
+
     ps = inspect.signature(func).parameters
     return [v(name) for name in ps]
 

@@ -49,6 +49,7 @@ class SystemResponseTest(object):
             if scope['y']:
                 self.hardware.write(lock['actuator'], lock['actuatorValue'])
                 raise Exception('Interlock')
+
         return f
 
     def run(self):
@@ -72,23 +73,17 @@ class SystemResponseTest(object):
 
                 for sensor in self.test['inputs']:
                     value = self.hardware.read(sensor)
-                    self.db.save_test_sensor_value(
-                        self.test['name'],
-                        sensor,
-                        value,
-                        t_elapsed,
-                        start_time)
+                    self.db.save_test_sensor_value(self.test['name'], sensor,
+                                                   value, t_elapsed,
+                                                   start_time)
 
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
                         self.hardware.write(port, point['y'])
                         last_port_value = point['y']
-                        self.db.save_test_sensor_value(
-                            self.test['name'],
-                            port,
-                            point['y'],
-                            t_elapsed,
-                            start_time)
+                        self.db.save_test_sensor_value(self.test['name'], port,
+                                                       point['y'], t_elapsed,
+                                                       start_time)
                         break
 
                 t.sleep()
@@ -99,11 +94,7 @@ class SystemResponseTest(object):
             self.db.set_setting('test_error', str(e))
 
         self.db.save_test_sensor_value(
-            self.test['name'],
-            port,
-            last_port_value,
-            t.elapsed(),
-            start_time)
+            self.test['name'], port, last_port_value, t.elapsed(), start_time)
 
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])

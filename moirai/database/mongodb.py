@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
 """
 Database class. Connects to MongoDB and abstracts all communication with it.
 """
@@ -69,10 +68,7 @@ class DatabaseV1(object):
         return False
 
     def generate_token(self):
-        t = {
-            'token': uuid.uuid4().hex,
-            'time': time.time()
-        }
+        t = {'token': uuid.uuid4().hex, 'time': time.time()}
         ts = self.get_setting('tokens') or []
         ts += [t]
         ts = [t for t in ts if time.time() - t['time'] < self.token_lifespan]
@@ -92,109 +88,93 @@ class DatabaseV1(object):
 
     def list_test_data(self):
         db = self.db.test_sensor_values
-        cursor = db.aggregate([
-            {
-                '$match': {
-                    'time': {
-                        '$lt': 1
-                    }
-                }
-            },
-            {
-                '$group': {
-                    '_id': {
-                        'name': '$test',
-                        'date': '$start_time'
-                    }
-                }
-            },
-            {
-                '$project': {
-                    '_id': 0,
-                    'name': '$_id.name',
-                    'date': '$_id.date'
+        cursor = db.aggregate([{
+            '$match': {
+                'time': {
+                    '$lt': 1
                 }
             }
-        ])
+        }, {
+            '$group': {
+                '_id': {
+                    'name': '$test',
+                    'date': '$start_time'
+                }
+            }
+        }, {
+            '$project': {
+                '_id': 0,
+                'name': '$_id.name',
+                'date': '$_id.date'
+            }
+        }])
 
         return list(cursor)
 
     def get_test_data(self, test, start_time, skip=0):
         db = self.db.test_sensor_values
 
-        cursor = db.aggregate([
-            {
-                '$match': {
-                    'test': test,
-                    'start_time': start_time
-                }
-            },
-            {
-                '$sort': {
-                    'time': 1
-                }
-            },
-            {
-                '$skip': skip
-            },
-            {
-                '$project': {
-                    'sensor': 1,
-                    'time': 1,
-                    'value': 1,
-                    '_id': 0
-                }
+        cursor = db.aggregate([{
+            '$match': {
+                'test': test,
+                'start_time': start_time
             }
-        ])
+        }, {
+            '$sort': {
+                'time': 1
+            }
+        }, {
+            '$skip': skip
+        }, {
+            '$project': {
+                'sensor': 1,
+                'time': 1,
+                'value': 1,
+                '_id': 0
+            }
+        }])
 
         return list(cursor)
 
     def get_filtered_test_data(self, test, start_time, sensors):
         db = self.db.test_sensor_values
 
-        cursor = db.aggregate([
-            {
-                '$match': {
-                    'test': test,
-                    'start_time': start_time,
-                    'sensor': {
-                        '$in': sensors
-                    }
-                }
-            },
-            {
-                '$sort': {
-                    'time': 1
-                }
-            },
-            {
-                '$group': {
-                    '_id': '$sensor',
-                    'values': {
-                        '$push': '$value'
-                    },
-                    'time': {
-                        '$push': '$time'
-                    }
-                }
-            },
-            {
-                '$project': {
-                    'time': 1,
-                    'sensor': '$_id',
-                    'values': 1,
-                    '_id': 0
+        cursor = db.aggregate([{
+            '$match': {
+                'test': test,
+                'start_time': start_time,
+                'sensor': {
+                    '$in': sensors
                 }
             }
-        ])
+        }, {
+            '$sort': {
+                'time': 1
+            }
+        }, {
+            '$group': {
+                '_id': '$sensor',
+                'values': {
+                    '$push': '$value'
+                },
+                'time': {
+                    '$push': '$time'
+                }
+            }
+        }, {
+            '$project': {
+                'time': 1,
+                'sensor': '$_id',
+                'values': 1,
+                '_id': 0
+            }
+        }])
 
         return list(cursor)
 
     def remove_test(self, test):
         if isinstance(test, list):
-            self.db.test_sensor_values.delete_many({
-                "$or": test
-            })
+            self.db.test_sensor_values.delete_many({"$or": test})
         else:
             self.db.test_sensor_values.delete_many(test)
 

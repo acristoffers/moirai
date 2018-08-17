@@ -55,72 +55,80 @@ class APIv1:
         """
         Entry point for the class. Adds routes and starts listening.
         """
+
         @self.app.after_request
         def add_header(response):
             response.headers['Cache-Control'] = 'no-store'
             return response
-        self.app.add_url_rule('/',
-                              view_func=lambda: 'Moirai Control System\n')
-        self.app.add_url_rule('/login',
-                              view_func=self.login,
-                              methods=['POST'])
-        self.app.add_url_rule('/set-password',
-                              view_func=self.set_password,
-                              methods=['POST'])
-        self.app.add_url_rule('/hardware/drivers',
-                              view_func=self.hardware_drivers,
-                              methods=['GET'])
-        self.app.add_url_rule('/hardware/configuration',
-                              view_func=self.hardware_set_configuration,
-                              methods=['POST'])
-        self.app.add_url_rule('/hardware/configuration',
-                              view_func=self.hardware_get_configuration,
-                              methods=['GET'])
-        self.app.add_url_rule('/system_response/tests',
-                              view_func=self.system_response_get_tests,
-                              methods=['GET'])
-        self.app.add_url_rule('/system_response/tests',
-                              view_func=self.system_response_set_tests,
-                              methods=['POST'])
-        self.app.add_url_rule('/system_response/test/run',
-                              view_func=self.system_response_run,
-                              methods=['POST'])
-        self.app.add_url_rule('/system_response/test/stop',
-                              view_func=self.system_response_stop,
-                              methods=['GET'])
-        self.app.add_url_rule('/live_graph/tests',
-                              view_func=self.live_graph_list_tests,
-                              methods=['GET'])
-        self.app.add_url_rule('/live_graph/test',
-                              view_func=self.live_graph_get_test,
-                              methods=['POST'])
-        self.app.add_url_rule('/live_graph/test/remove',
-                              view_func=self.live_graph_remove_test,
-                              methods=['POST'])
-        self.app.add_url_rule('/live_graph/test/export',
-                              view_func=self.live_graph_export_mat,
-                              methods=['POST'])
-        self.app.add_url_rule('/controllers',
-                              view_func=self.controller_set,
-                              methods=['POST'])
-        self.app.add_url_rule('/controllers',
-                              view_func=self.controller_get,
-                              methods=['GET'])
-        self.app.add_url_rule('/controllers/run',
-                              view_func=self.controller_run,
-                              methods=['POST'])
-        self.app.add_url_rule('/controllers/stop',
-                              view_func=self.controller_stop,
-                              methods=['GET'])
-        self.app.add_url_rule('/dev/gen_dummy_tests',
-                              view_func=self.dev_gen_dummy_tests,
-                              methods=['GET'])
-        self.app.add_url_rule('/db/dump',
-                              view_func=self.dump_database,
-                              methods=['GET'])
-        self.app.add_url_rule('/db/restore',
-                              view_func=self.restore_database,
-                              methods=['POST'])
+
+        self.app.add_url_rule('/', view_func=lambda: 'Moirai Control System\n')
+        self.app.add_url_rule('/login', view_func=self.login, methods=['POST'])
+        self.app.add_url_rule(
+            '/set-password', view_func=self.set_password, methods=['POST'])
+        self.app.add_url_rule(
+            '/hardware/drivers',
+            view_func=self.hardware_drivers,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/hardware/configuration',
+            view_func=self.hardware_set_configuration,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/hardware/configuration',
+            view_func=self.hardware_get_configuration,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/system_response/tests',
+            view_func=self.system_response_get_tests,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/system_response/tests',
+            view_func=self.system_response_set_tests,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/system_response/test/run',
+            view_func=self.system_response_run,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/system_response/test/stop',
+            view_func=self.system_response_stop,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/live_graph/tests',
+            view_func=self.live_graph_list_tests,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/live_graph/test',
+            view_func=self.live_graph_get_test,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/live_graph/test/remove',
+            view_func=self.live_graph_remove_test,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/live_graph/test/export',
+            view_func=self.live_graph_export_mat,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/controllers', view_func=self.controller_set, methods=['POST'])
+        self.app.add_url_rule(
+            '/controllers', view_func=self.controller_get, methods=['GET'])
+        self.app.add_url_rule(
+            '/controllers/run',
+            view_func=self.controller_run,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/controllers/stop',
+            view_func=self.controller_stop,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/dev/gen_dummy_tests',
+            view_func=self.dev_gen_dummy_tests,
+            methods=['GET'])
+        self.app.add_url_rule(
+            '/db/dump', view_func=self.dump_database, methods=['GET'])
+        self.app.add_url_rule(
+            '/db/restore', view_func=self.restore_database, methods=['POST'])
         WSGIRequestHandler.protocol_version = "HTTP/1.1"
         self.app.run(host="0.0.0.0", port=5000, threaded=True)
 
@@ -228,10 +236,14 @@ class APIv1:
             return '{}', 403
         drivers = self.hardware.list_drivers()
         drivers = [{
-            'name': driver,
-            'has_setup': self.hardware.driver_has_setup(driver),
-            'setup_arguments': self.hardware.driver_setup_arguments(driver),
-            'ports': self.__ports_for_driver(driver)
+            'name':
+            driver,
+            'has_setup':
+            self.hardware.driver_has_setup(driver),
+            'setup_arguments':
+            self.hardware.driver_setup_arguments(driver),
+            'ports':
+            self.__ports_for_driver(driver)
         } for driver in drivers]
         return json.dumps(drivers)
 
@@ -478,9 +490,12 @@ class APIv1:
 
         last_date = max([test['date'] for test in tests])
         tests = [{
-            'name': t['name'],
-            'date': t['date'].isoformat(),
-            'running': t['name'] == running_test and t['date'] == last_date
+            'name':
+            t['name'],
+            'date':
+            t['date'].isoformat(),
+            'running':
+            t['name'] == running_test and t['date'] == last_date
         } for t in tests]
 
         return json.dumps(tests)
@@ -724,10 +739,7 @@ class APIv1:
             return '{}', 403
 
         settings, test_sensor_values = self.database.dump_database()
-        data = {
-            'settings': settings,
-            'test_sensor_values': test_sensor_values
-        }
+        data = {'settings': settings, 'test_sensor_values': test_sensor_values}
         jsondata = json.dumps(data, default=json_util.default)
 
         del data, settings, test_sensor_values  # release memory
@@ -736,7 +748,11 @@ class APIv1:
         with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
             zip_file.writestr('dump', jsondata)
         zbuffer.seek(0, 0)
-        return send_file(zbuffer, as_attachment=True, attachment_filename='dump.zip', mimetype="application/octet-stream")
+        return send_file(
+            zbuffer,
+            as_attachment=True,
+            attachment_filename='dump.zip',
+            mimetype="application/octet-stream")
 
     def restore_database(self):
         """
@@ -814,7 +830,7 @@ class APIv1:
         ts = list(range(600))
 
         xs = ts
-        ys = [x ** 2 for x in xs]
+        ys = [x**2 for x in xs]
         zs = [2 * x for x in xs]
 
         vss = [xs, ys, zs]
@@ -822,12 +838,7 @@ class APIv1:
 
         for n, vs in zip(ns, vss):
             for x, t in zip(vs, ts):
-                self.database.save_test_sensor_value(
-                    'Dummy',
-                    n,
-                    x,
-                    t,
-                    start_time
-                )
+                self.database.save_test_sensor_value('Dummy', n, x, t,
+                                                     start_time)
 
         return '[]'

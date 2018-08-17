@@ -30,9 +30,10 @@ import appdirs
 
 import moirai
 
-LOG_DIR = appdirs.user_log_dir(appname=moirai.__name__,
-                               appauthor=moirai.__author__,
-                               version=moirai.__version__)
+LOG_DIR = appdirs.user_log_dir(
+    appname=moirai.__name__,
+    appauthor=moirai.__author__,
+    version=moirai.__version__)
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = open(os.path.join(LOG_DIR, 'moirai.log'), 'at')
 
@@ -48,6 +49,7 @@ def decorate_all_methods(decorator):
     """
     Decorates every member of a class.
     """
+
     def decorate(cls):
         """
         Decorates every member of a class.
@@ -55,6 +57,7 @@ def decorate_all_methods(decorator):
         for name, func in inspect.getmembers(cls, inspect.isfunction):
             setattr(cls, name, decorator(func))
         return cls
+
     return decorate
 
 
@@ -63,6 +66,7 @@ def ignore_eagain(func):
     errno.EAGAIN is generated in some platforms when the socket is
     non-blocking. This decorator ignores this exception, as it's not an error.
     """
+
     def decorate(ret, *kargs):
         """
         Decorator.
@@ -74,6 +78,7 @@ def ignore_eagain(func):
                 return ret
             else:
                 raise error
+
     return decorate
 
 
@@ -90,6 +95,7 @@ def log(func):
     """
     Logs every call to a class method.
     """
+
     def decorate(*kargs, **kwargs):
         """
         Logs every call to a class method.
@@ -110,6 +116,7 @@ def log(func):
         log_str = '%s(%s)' % (func_name, args)
         log_msg(log_str)
         return func(*kargs, **kwargs)
+
     return decorate
 
 
@@ -117,6 +124,7 @@ def dont_raise(func):
     """
     Decorate every member of a class to stop raising exceptions.
     """
+
     def decorate(*kargs, **kwargs):
         """
         Decorate every member of a class to stop raising exceptions.
@@ -126,4 +134,5 @@ def dont_raise(func):
         except Exception as error:
             log_msg('An Exception occurred: %s' % error)
             print('An Exception occurred: %s' % error)
+
     return decorate

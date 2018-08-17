@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
 """
 Database class. Connects to MongoDB and abstracts all communication with it.
 """
@@ -36,7 +35,11 @@ class DatabaseV1(object):
     Database class. Connects to MongoDB and abstracts all communication with it.
     """
 
-    def __init__(self, host='127.0.0.1', port=3306, username=None, password=None):
+    def __init__(self,
+                 host='127.0.0.1',
+                 port=3306,
+                 username=None,
+                 password=None):
         self.params = {
             'host': host,
             'port': port,
@@ -64,7 +67,7 @@ class DatabaseV1(object):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
         query = 'SELECT `key`, `value` FROM moirai.settings WHERE `key` = %s'
-        cur.execute(query, (key,))
+        cur.execute(query, (key, ))
         r = [json.loads(value) for (key, value) in cur]
         return r[0] if len(r) > 0 else None
         cur.close()
@@ -83,10 +86,7 @@ class DatabaseV1(object):
         return False
 
     def generate_token(self):
-        t = {
-            'token': uuid.uuid4().hex,
-            'time': time.time()
-        }
+        t = {'token': uuid.uuid4().hex, 'time': time.time()}
         ts = self.get_setting('tokens') or []
         ts += [t]
         ts = [t for t in ts if time.time() - t['time'] < self.token_lifespan]
@@ -135,11 +135,7 @@ class DatabaseV1(object):
                    WHERE test = %s AND start_time = %s AND sensor = %s'''
         result = []
         for sensor in sensors:
-            s = {
-                'sensor': sensor,
-                'time': [],
-                'values': []
-            }
+            s = {'sensor': sensor, 'time': [], 'values': []}
             cur.execute(query, (test, start_time, sensor))
             s['time'], s['values'] = zip(*cur)
             result.append(s)
@@ -195,9 +191,9 @@ class DatabaseV1(object):
         query = '''INSERT INTO moirai.sensor_values 
                     (`sensor`, `value`, `time`, `start_time`, `test`)
                    VALUES (%s, %s, %s, %s, %s)'''
-        data = [(s['sensor'], s['value'], s['time'], s['start_time'], s['test'])
-                for s in test_sensor_values]
-        for d in (data[i:i+100] for i in range(0, len(data), 100)):
+        data = [(s['sensor'], s['value'], s['time'], s['start_time'],
+                 s['test']) for s in test_sensor_values]
+        for d in (data[i:i + 100] for i in range(0, len(data), 100)):
             cur.executemany(query, d)
         cur.close()
         cnx.close()

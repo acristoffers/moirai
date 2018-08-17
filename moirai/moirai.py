@@ -20,7 +20,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-
 """
 Developer's note:
 This script starts the modules as processes for multithreading purposes.
@@ -151,7 +150,9 @@ def start():
         print(r'Options:')
         print('\t--version Prints version')
         print('\t--install Tries to install dependencies.')
-        print('\t--sudo Uses sudo to install packages. You still need write access to /opt.')
+        print(
+            '\t--sudo Uses sudo to install packages. You still need write access to /opt.'
+        )
         print('\t--set-password=pwd Sets the password to pwd')
         print('')
         print('\tThe installer does not behave well with PyENV')
