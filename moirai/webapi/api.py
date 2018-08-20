@@ -68,6 +68,8 @@ class APIv1:
         self.app.add_url_rule(
             '/set-password', view_func=self.set_password, methods=['POST'])
         self.app.add_url_rule(
+            '/last_error', view_func=self.last_error, methods=['GET'])
+        self.app.add_url_rule(
             '/hardware/drivers',
             view_func=self.hardware_drivers,
             methods=['GET'])
@@ -204,6 +206,20 @@ class APIv1:
         password = hasher.hexdigest()
         self.database.set_setting('password', password)
         return '{}'
+
+    def last_error(self):
+        """
+        Returns the last error in the database.
+
+        @returns:
+            {
+                message: string
+            }
+        """
+        if not self.verify_token():
+            return '{}', 403
+        error = self.database.get_setting('test_error')
+        return json.dumps({'message': error})
 
     def hardware_drivers(self):
         """
