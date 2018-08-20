@@ -62,7 +62,7 @@ PS = ['webapi', 'hardware']
 PROCESS_TYPE = 'main'
 WEBSOCKET = None
 
-sys.path.append(os.path.join(os.path.abspath(os.sep), 'opt'))
+sys.path.append(os.path.join(os.path.splitdrive(sys.executable)[0], 'opt'))
 
 
 def signal_handler(*_):
