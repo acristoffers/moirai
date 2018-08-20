@@ -281,12 +281,12 @@ def install(use_sudo=False):
             print('Trying to install MongoDB and snap7...')
             if download_snap7_win():
                 print('Downloading MongoDB...')
-                mongo = 'https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-3.4.9-signed.msi'
+                mongo = 'https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1-signed.msi'
                 contents = urlopen(mongo).read()
                 with open('mongo.msi', 'wb') as f:
                     f.write(contents)
                 result = os.system(
-                    r'msiexec.exe /q /i mongo.msi INSTALLLOCATION="C:\Program Files\MongoDB\Server\3.4.9\" ADDLOCAL="all"'
+                    r'msiexec.exe /q /i mongo.msi INSTALLLOCATION="C:\Program Files\MongoDB\Server\4.0.1\" ADDLOCAL="all"'
                 )
                 if result:
                     print('Installation finished.')
