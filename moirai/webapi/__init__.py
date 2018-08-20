@@ -50,6 +50,7 @@ class ProcessHandler(AbstractProcessHandler):
         self.thread = Thread(target=self.api.run, name='WebAPIThread')
 
     def quit(self):
+        self.api.stop()
         pass
 
     def process_command(self, sender, cmd, args):

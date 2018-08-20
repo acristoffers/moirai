@@ -77,11 +77,8 @@ def signal_handler(*_):
         # Ask each child process to quit
         for key in reversed(PS):
             process, pipe = PROCESSES[key]
-            if key == 'websocket':
-                process.terminate()
-            else:
-                pipe.send(('quit', None))
-                process.join()
+            pipe.send(('quit', None))
+            process.join()
         print('Shutting down Moirai...')
         sys.exit(0)
 

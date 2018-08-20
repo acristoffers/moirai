@@ -56,6 +56,6 @@ setup(
     license="MIT",
     install_requires=[
         'appdirs', 'ahio', 'Flask', 'pymongo', 'python-dateutil', 'numpy',
-        'scipy'
+        'scipy', 'cheroot'
     ],
     entry_points={'console_scripts': ['moirai = moirai.moirai:start']})
