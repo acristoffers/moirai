@@ -25,10 +25,13 @@ controller/model.
 
 Use pip to install. This is a Python 3 application and won't run in Python 2.
 Use `pip install moirai` or `pip3 install moirai` to install it. It also has
-other dependencies not installable through pip. Those can be installed by
-running `moirai --install`. Namely, it will install MongoDB and the Snap7
-library. It's designed to work on Windows, macOS (with Homebrew) and Linux
-(apt-get, dnf, yum and zypper).
+other dependencies not installable through pip, which can be installed by
+running `moirai --install --sudo`. It will install MongoDB (or MySQL on
+Raspberry Pi) and the Snap7 library. It's designed to work on Windows, macOS
+(with Homebrew) and Linux (apt-get, dnf, yum and zypper).
+
+If using the Snap7 driver on Windows, you may need to compile the driver
+yourself and copy it to /Windows/System32.
 
 ## License
 
