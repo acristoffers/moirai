@@ -22,14 +22,42 @@
 # THE SOFTWARE.
 
 import codecs
+import glob
+import shutil
 from os import path
 
 import moirai
-from setuptools import find_packages, setup
+from setuptools import Command, find_packages, setup
 
 PWD = path.abspath(path.dirname(__file__))
 with codecs.open(path.join(PWD, 'README.md'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
+
+
+class CleanCommand(Command):
+    """Custom clean command to tidy up the project root."""
+    CLEAN_FILES = [
+        './build', './dist', './*.pyc', './*.tgz', './*.egg-info',
+        './**/__pycache__'
+    ]
+
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        cwd = path.realpath(path.curdir)
+        ps = [glob.glob(p) for p in self.CLEAN_FILES]
+        ps = [path.normpath(path.join(cwd, p)) for p in sum(ps, [])]
+        ps = [p for p in ps if p.startswith(cwd)]
+        for p in ps:
+            print('removing %s' % p)
+            shutil.rmtree(p)
+
 
 setup(
     name='moirai',
@@ -58,4 +86,5 @@ setup(
         'appdirs', 'ahio', 'Flask', 'pymongo', 'python-dateutil', 'numpy',
         'scipy', 'cheroot'
     ],
-    entry_points={'console_scripts': ['moirai = moirai.moirai:start']})
+    entry_points={'console_scripts': ['moirai = moirai.moirai:start']},
+    cmdclass={'clean': CleanCommand})
