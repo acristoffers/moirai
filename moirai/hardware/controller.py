@@ -126,8 +126,11 @@ class Controller(object):
         self.running = True
 
         try:
+            scope = 'before'
             before = compile(self.cs['before'], 'before', 'exec')
+            scope = 'controller'
             controller = compile(self.cs['controller'], 'controller', 'exec')
+            scope = 'after'
             after = compile(self.cs['after'], 'after', 'exec')
             self.after = after
 
