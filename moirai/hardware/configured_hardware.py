@@ -21,6 +21,8 @@
 # THE SOFTWARE.
 
 import ahio
+import math
+import numpy
 import os
 
 from moirai.database import DatabaseV1
@@ -87,13 +89,13 @@ class ConfiguredHardware(object):
         self.outputs = {**self.outputs, **cs}
 
     def _read_calibrated(self, port, formula):
-        local = {'x': self.driver.read(port)}
+        local = {'x': self.driver.read(port), 'math': math, 'numpy': numpy}
         code = compile('y=%s' % formula, '_string_', 'exec')
         exec(code, local, local)
         return local['y']
 
     def _write_calibrated(self, port, formula, value, pwm):
-        local = {'x': value}
+        local = {'x': value, 'math': math, 'numpy': numpy}
         exec('y=%s' % formula, local, local)
         self.driver.write(port, local['y'], pwm)
 
