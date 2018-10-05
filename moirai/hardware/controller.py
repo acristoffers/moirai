@@ -121,6 +121,7 @@ class Controller(object):
 
     def run(self):
         self.db.set_setting('current_test', self.cs['name'])
+        self.db.set_setting('test_error', None)
 
         after = None
         self.running = True

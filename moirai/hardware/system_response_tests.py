@@ -54,6 +54,7 @@ class SystemResponseTest(object):
 
     def run(self):
         self.db.set_setting('current_test', self.test['name'])
+        self.db.set_setting('test_error', None)
 
         for o in self.test['fixedOutputs']:
             self.hardware.write(o['alias'], o['value'])
