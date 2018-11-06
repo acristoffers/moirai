@@ -69,7 +69,8 @@ class SystemResponseTest(object):
         run_time = self.test['points'][-1]['x']
         interval = self.test['logRate']
         t = Timer(run_time, interval)
-        port = self.test['output']
+        ports = self.test['output']  # Can be a list.
+        ports = [ports] if type(ports) == str else ports
         start_time = datetime.datetime.utcnow()
         last_port_value = 0
         t_elapsed = 0
@@ -87,11 +88,12 @@ class SystemResponseTest(object):
 
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
-                        self.hardware.write(port, point['y'])
+                        for port in ports:
+                            self.hardware.write(port, point['y'])
+                            self.db.save_test_sensor_value(
+                                self.test['name'], port, point['y'], t_elapsed,
+                                start_time)
                         last_port_value = point['y']
-                        self.db.save_test_sensor_value(self.test['name'], port,
-                                                       point['y'], t_elapsed,
-                                                       start_time)
                         break
 
                 t.sleep()
@@ -101,8 +103,10 @@ class SystemResponseTest(object):
             print(e)
             self.db.set_setting('test_error', str(e))
 
-        self.db.save_test_sensor_value(
-            self.test['name'], port, last_port_value, t.elapsed(), start_time)
+        for port in ports:
+            self.db.save_test_sensor_value(self.test['name'], port,
+                                           last_port_value, t.elapsed(),
+                                           start_time)
 
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])

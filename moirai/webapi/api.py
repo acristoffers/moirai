@@ -382,7 +382,7 @@ class APIv1:
                 name: string
                 type: string
                 inputs: string[]
-                output: string
+                output: string[]
                 points: [{
                     x: number
                     y: number
@@ -418,7 +418,7 @@ class APIv1:
             name: string
             type: string
             inputs: string[]
-            output: string
+            output: string[]
             points: [{
                 x: number
                 y: number
