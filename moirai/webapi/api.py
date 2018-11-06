@@ -129,10 +129,6 @@ class APIv1:
             view_func=self.controller_stop,
             methods=['GET'])
         self.app.add_url_rule(
-            '/dev/gen_dummy_tests',
-            view_func=self.dev_gen_dummy_tests,
-            methods=['GET'])
-        self.app.add_url_rule(
             '/db/dump', view_func=self.dump_database, methods=['GET'])
         self.app.add_url_rule(
             '/db/restore', view_func=self.restore_database, methods=['POST'])
@@ -633,7 +629,7 @@ class APIv1:
         ks = list(v.keys())
         ds = self.database.get_filtered_test_data(test, start_time, ks)
         ts = ds[0]['time']
-        ds = {d['sensor']: d['values'] for d in ds}
+        ds = {v.get(d['sensor'], d['sensor']): d['values'] for d in ds}
         ds['t'] = ts
 
         directory = tempfile.gettempdir()
@@ -852,22 +848,3 @@ class APIv1:
             if isinstance(p['id'], Enum):
                 port['id'] = p['id'].__class__(port['id'])
         return port
-
-    def dev_gen_dummy_tests(self):
-        import datetime
-        start_time = datetime.datetime.utcnow()
-        ts = list(range(600))
-
-        xs = ts
-        ys = [x**2 for x in xs]
-        zs = [2 * x for x in xs]
-
-        vss = [xs, ys, zs]
-        ns = ['x', 'y', 'z']
-
-        for n, vs in zip(ns, vss):
-            for x, t in zip(vs, ts):
-                self.database.save_test_sensor_value('Dummy', n, x, t,
-                                                     start_time)
-
-        return '[]'
