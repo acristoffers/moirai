@@ -47,6 +47,10 @@ class Controller(object):
         self.hardware = ConfiguredHardware()
         configuration = self.db.get_setting('hardware_configuration')
         self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.off_values = {
+            p['alias']: float(p['defaultValue'])
+            for p in configuration['ports'] if p['type'] & 8
+        }
         self.running = True
         self.lock = threading.Lock()
         self.after = None
@@ -149,6 +153,9 @@ class Controller(object):
                 'math': math
             }
 
+            for k, v in self.off_values.items():
+                self.hardware.write(k, v)
+
             exec(before, plocals, plocals)
 
             state = plocals['s']
@@ -232,6 +239,9 @@ class Controller(object):
 
                 for actuator, value in plocals['outputs'].items():
                     self.hardware.write(actuator, value)
+
+            for k, v in self.off_values.items():
+                self.hardware.write(k, v)
         except Exception as err:
             error = err.__class__.__name__
             detail = err.args[0]

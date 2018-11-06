@@ -38,6 +38,10 @@ class SystemResponseTest(object):
         self.hardware = ConfiguredHardware()
         configuration = self.db.get_setting('hardware_configuration')
         self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.off_values = {
+            p['alias']: float(p['defaultValue'])
+            for p in configuration['ports'] if p['type'] & 8
+        }
 
     def interlock(self, lock):
         code = compile('y=%s' % lock['expression'], '_string_', 'exec')
@@ -55,6 +59,9 @@ class SystemResponseTest(object):
     def run(self):
         self.db.set_setting('current_test', self.test['name'])
         self.db.set_setting('test_error', None)
+
+        for k, v in self.off_values.items():
+            self.hardware.write(k, v)
 
         for o in self.test['fixedOutputs']:
             self.hardware.write(o['alias'], o['value'])
@@ -99,6 +106,9 @@ class SystemResponseTest(object):
 
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])
+
+        for k, v in self.off_values.items():
+            self.hardware.write(k, v)
 
         self.db.set_setting('current_test', None)
         self.db.close()
