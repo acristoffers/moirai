@@ -39,6 +39,7 @@ from flask import Flask, request, send_file
 from werkzeug.serving import WSGIRequestHandler
 from moirai.database import DatabaseV1
 from moirai.hardware import Hardware
+from moirai import __version__
 
 
 class APIv1:
@@ -65,6 +66,8 @@ class APIv1:
 
         self.app.add_url_rule('/', view_func=lambda: 'Moirai Control System\n')
         self.app.add_url_rule('/login', view_func=self.login, methods=['POST'])
+        self.app.add_url_rule(
+            '/version', view_func=self.version, methods=['GET'])
         self.app.add_url_rule(
             '/set-password', view_func=self.set_password, methods=['POST'])
         self.app.add_url_rule(
@@ -140,6 +143,9 @@ class APIv1:
 
     def stop(self):
         self.server.stop()
+
+    def version(self):
+        return json.dumps({'version': __version__})
 
     def verify_token(self):
         """
