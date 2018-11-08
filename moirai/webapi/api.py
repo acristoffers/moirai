@@ -29,6 +29,7 @@ import logging
 import os.path
 import tempfile
 import scipy.io as sio
+from multiprocessing import Pipe
 
 from bson import json_util
 from enum import Enum
@@ -132,6 +133,10 @@ class APIv1:
             '/db/dump', view_func=self.dump_database, methods=['GET'])
         self.app.add_url_rule(
             '/db/restore', view_func=self.restore_database, methods=['POST'])
+        self.app.add_url_rule(
+            '/simulation/run',
+            view_func=self.model_simulation_run,
+            methods=['POST'])
 
         d = PathInfoDispatcher({'/': self.app})
         self.server = Server(('0.0.0.0', 5000), d)
@@ -848,3 +853,30 @@ class APIv1:
             if isinstance(p['id'], Enum):
                 port['id'] = p['id'].__class__(port['id'])
         return port
+
+    def model_simulation_run(self):
+        """
+        Simulates the model. It must be a POST request with the following body:
+
+        {
+            model: string
+            x0: string
+            u: string
+            duration: string
+        }
+
+        @returns: On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        args = request.json
+        p1, p2 = Pipe()
+        self.ph.send_command("hardware", "run_simulation", (args, p1))
+        return p2.recv()
