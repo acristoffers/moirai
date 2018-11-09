@@ -59,16 +59,15 @@ class ModelSimulation(object):
             tf = len(self.model) < 4
 
             if len(self.model) % 2 == 1:
-                dt = self.model[-1]
-
-            if len(self.model) % 2 == 0:
+                dt = float(self.model[-1])
+            else:
                 if len(self.model) == 2:
                     self.model = scipy.signal.tf2ss(*self.model)
                 vals = scipy.linalg.eigvals(self.model[0])
-                dt = float('%.2f' % (max(abs(np.real(vals))) / 5))
+                dt = max(0.1, float('%.1f' % (max(abs(np.real(vals))) / 5)))
+                if type(self.U) == list:
+                    dt = self.T / len(self.U)
                 self.model = scipy.signal.cont2discrete(self.model, dt)
-
-            dt = dt if dt != 0 else 0.01
 
             if type(self.U) == list:
                 self.T = list(range(len(self.U)))
@@ -106,7 +105,7 @@ class ModelSimulation(object):
                 else:
                     outputs['y'].append(np.asscalar(y))
 
-            outputs['t'] = [dt * t for t in outputs['t']]
+            outputs['t'] = [dt * k for k in outputs['t']]
             return json.dumps(outputs)
-        except:
-            return json.dumps({'error': 'Error in simulation'})
+        except Exception as e:
+            return json.dumps({'error': f'Error in simulation ({str(e)})'})

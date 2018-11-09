@@ -112,7 +112,6 @@ class SystemResponseTest(object):
             self.hardware.write(o['alias'], o['value'])
 
         for k, v in self.off_values.items():
-            print(f'Setting {k} to {v}')
             self.hardware.write(k, v)
 
         self.db.set_setting('current_test', None)
