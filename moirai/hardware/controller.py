@@ -49,7 +49,7 @@ class Controller(object):
         self.locks = [self.interlock(l) for l in configuration['interlocks']]
         self.off_values = {
             p['alias']: float(p['defaultValue'])
-            for p in configuration['ports'] if p['type'] & 8
+            for p in configuration['ports'] if p['type'] & (8 | 16)
         }
         self.running = True
         self.lock = threading.Lock()
@@ -84,6 +84,7 @@ class Controller(object):
                 raise Exception('Interlock')
             if scope['y']:
                 self.hardware.write(lock['actuator'], lock['actuatorValue'])
+                self.db.set_setting('test_error', 'Interlock')
                 raise Exception('Interlock')
 
         return f

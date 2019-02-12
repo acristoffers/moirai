@@ -20,16 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import os
 import inspect
-import ahio
-
+import os
 from multiprocessing import Pipe
 from threading import Thread
 
+import ahio
 from moirai.abstract_process_handler import AbstractProcessHandler
 from moirai.decorators import decorate_all_methods, dont_raise
 from moirai.hardware.cmd_processor import CommandProcessor
+from moirai.hardware.free import Free
+from moirai.hardware.pid import PID
 
 
 def main(pipe):
@@ -48,6 +49,8 @@ class ProcessHandler(AbstractProcessHandler):
 
     def __init__(self, pipe):
         self.cmd_processor = CommandProcessor(self)
+        self.pid = PID.instance()
+        self.free = Free.instance()
         super().__init__('Hardware', pipe)
 
     def quit(self):
@@ -61,7 +64,8 @@ class ProcessHandler(AbstractProcessHandler):
             self.cmd_processor.process_command(sender, cmd, args)
 
     def loop(self):
-        pass
+        self.pid.run()
+        self.free.run()
 
 
 def arguments_of(func):

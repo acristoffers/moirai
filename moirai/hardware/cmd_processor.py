@@ -21,9 +21,11 @@
 # THE SOFTWARE.
 
 from moirai.decorators import decorate_all_methods, dont_raise, log
-from moirai.hardware.system_response_tests import SystemResponseTest
 from moirai.hardware.controller import Controller
+from moirai.hardware.free import Free
 from moirai.hardware.model_simulation import ModelSimulation
+from moirai.hardware.pid import PID
+from moirai.hardware.system_response_tests import SystemResponseTest
 
 
 @decorate_all_methods(dont_raise)
@@ -35,6 +37,8 @@ class CommandProcessor(object):
 
     def __init__(self, handler):
         self.handler = handler
+        self.pid = PID.instance()
+        self.free = Free.instance()
 
     def process_command(self, sender, cmd, args):
         """
@@ -66,3 +70,11 @@ class CommandProcessor(object):
         sim = ModelSimulation(data)
         result = sim.run()
         pipe.send(result)
+
+    def run_pid(self, args):
+        self.handler.flush()
+        self.pid.run(args)
+
+    def run_free(self, args):
+        self.handler.flush()
+        self.free.run(args)

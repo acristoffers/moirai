@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import ahio
 import io
 import zipfile
 import hashlib
@@ -137,6 +138,10 @@ class APIv1:
             '/simulation/run',
             view_func=self.model_simulation_run,
             methods=['POST'])
+        self.app.add_url_rule(
+            '/pid/run', view_func=self.pid_run, methods=['POST'])
+        self.app.add_url_rule(
+            '/free/run', view_func=self.free_run, methods=['POST'])
 
         d = PathInfoDispatcher({'/': self.app})
         self.server = Server(('0.0.0.0', 5000), d)
@@ -514,7 +519,6 @@ class APIv1:
             return '{}', 403
         running_test = self.database.get_setting('current_test')
         tests = self.database.list_test_data()
-
         if len(tests) == 0:
             return '[]'
 
@@ -880,3 +884,67 @@ class APIv1:
         p1, p2 = Pipe()
         self.ph.send_command("hardware", "run_simulation", (args, p1))
         return p2.recv()
+
+    def pid_run(self):
+        """
+        Runs the PID controller for controlled-variable y (port name expected)
+        and control-variable u (port name expected).
+
+        {
+            Kp: number
+            Ki: number
+            Kd: number
+            dt: number
+            u: string
+            y: string
+            r: string
+            umax: number
+            umin: number
+            fixedOutputs: {
+                            alias: string
+                            value: number
+                          }[]
+        }
+
+        @returns: On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        args = request.json
+        self.ph.send_command("hardware", "run_pid", args)
+        return '{}'
+
+    def free_run(self):
+        """
+        Controls the plant outputs freely.
+
+        {
+            dt: number
+            inputs: string[]
+            outputs: {
+                        alias: string
+                        value: number
+                     }[]
+        }
+
+        @returns: On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        args = request.json
+        self.ph.send_command("hardware", "run_free", args)
+        return '{}'

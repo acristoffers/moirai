@@ -59,6 +59,7 @@ class ConfiguredHardware(object):
             args = {a['name']: a['value'] for a in config['setup_arguments']}
             self.driver.setup(**args)
 
+        self.ports = config['ports']
         for port in config['ports']:
             pin = port['name']
             if hasattr(self.driver, 'Pins'):

@@ -93,6 +93,11 @@ class AbstractProcessHandler(object):
             del self._pipes[name]
             return (None, None)
 
+    def flush(self):
+        for _, pipe in self._pipes.items():
+            while pipe.poll():
+                pipe.recv()
+
     def process_command(self, sender, cmd, args):
         """
         Abstract method to be implemented by classes extending this class.
