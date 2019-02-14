@@ -57,8 +57,7 @@ class PID(object):
         self.hardware = None
         self.db = DatabaseV1()
         self.start_time = datetime.datetime.utcnow()
-        configuration = self.db.get_setting('hardware_configuration')
-        self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.locks = []
 
     def is_valid(self):
         return (time.time() - self.last_run) < max(2 * self.timer.interval, 1)
@@ -78,6 +77,8 @@ class PID(object):
                 self.y = data['y']
                 self.u = data['u']
                 self.fixedOutputs = data['fixedOutputs']
+                config = self.db.get_setting('hardware_configuration')
+                self.locks = [self.interlock(l) for l in config['interlocks']]
 
             if not self.is_valid():
                 self.running = False

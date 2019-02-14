@@ -47,8 +47,7 @@ class Free(object):
         self.hardware = None
         self.db = DatabaseV1()
         self.start_time = datetime.datetime.utcnow()
-        configuration = self.db.get_setting('hardware_configuration')
-        self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.locks = []
         self.inputs = []
         self.outputs = []
 
@@ -63,6 +62,8 @@ class Free(object):
                 self.timer.interval = float(data['dt'])
                 self.inputs = data['inputs']
                 self.outputs = data['outputs']
+                config = self.db.get_setting('hardware_configuration')
+                self.locks = [self.interlock(l) for l in config['interlocks']]
 
             if not self.is_valid():
                 self.running = False
