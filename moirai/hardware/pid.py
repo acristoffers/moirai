@@ -89,8 +89,11 @@ class PID(object):
                     self.timer = Timer(math.inf, float(data['dt']))
                     self.start_time = datetime.datetime.utcnow()
                     self.hardware = ConfiguredHardware()
+                    self.last_run = time.time()
+
                     for output in self.fixedOutputs:
                         self.hardware.write(output['alias'], output['value'])
+
                     self.db.save_test_sensor_value('PID', self.y, 0,
                                                    self.timer.elapsed(),
                                                    self.start_time)

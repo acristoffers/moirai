@@ -74,6 +74,8 @@ class Free(object):
                     self.timer = Timer(math.inf, float(data['dt']))
                     self.start_time = datetime.datetime.utcnow()
                     self.hardware = ConfiguredHardware()
+                    self.last_run = time.time()
+
                     for output in self.outputs:
                         self.db.save_test_sensor_value('Free', output['alias'],
                                                        0, self.timer.elapsed(),
