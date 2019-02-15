@@ -94,14 +94,11 @@ class PID(object):
                     for output in self.fixedOutputs:
                         self.hardware.write(output['alias'], output['value'])
 
-                    self.db.save_test_sensor_value('PID', self.y, 0,
-                                                   self.timer.elapsed(),
+                    self.db.save_test_sensor_value('PID', self.y, 0, 0,
                                                    self.start_time)
-                    self.db.save_test_sensor_value('PID', self.u, 0,
-                                                   self.timer.elapsed(),
+                    self.db.save_test_sensor_value('PID', self.u, 0, 0,
                                                    self.start_time)
-                    self.db.save_test_sensor_value('PID', 'R', self.r,
-                                                   self.timer.elapsed(),
+                    self.db.save_test_sensor_value('PID', 'R', self.r, 0,
                                                    self.start_time)
 
                 self.timer.sleep()

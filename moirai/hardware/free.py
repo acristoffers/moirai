@@ -78,11 +78,9 @@ class Free(object):
 
                     for output in self.outputs:
                         self.db.save_test_sensor_value('Free', output['alias'],
-                                                       0, self.timer.elapsed(),
-                                                       self.start_time)
+                                                       0, 0, self.start_time)
                     for input in self.inputs:
-                        self.db.save_test_sensor_value('Free', input, 0,
-                                                       self.timer.elapsed(),
+                        self.db.save_test_sensor_value('Free', input, 0, 0,
                                                        self.start_time)
 
                 self.timer.sleep()
