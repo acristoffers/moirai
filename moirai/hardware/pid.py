@@ -76,7 +76,9 @@ class PID(object):
                 self.ls = float(data['umax'])
                 self.y = data['y']
                 self.u = data['u']
-                self.fixedOutputs = data['fixedOutputs']
+                self.fixedOutputs = [
+                    o for o in data['fixedOutputs'] if len(o['alias']) != 0
+                ]
                 config = self.db.get_setting('hardware_configuration')
                 self.locks = [self.interlock(l) for l in config['interlocks']]
 
