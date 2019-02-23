@@ -20,10 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import datetime
+import json
+
 import numpy as np
 import scipy.signal
-
-import json
+from moirai.database import DatabaseV1
 
 
 class ModelSimulation(object):
@@ -89,23 +91,36 @@ class ModelSimulation(object):
                 for i in range(len(x.flatten())):
                     outputs['x%d' % (i + 1)] = []
 
+            db = DatabaseV1()
+            start_time = datetime.datetime.utcnow()
+
             for k in self.T:
                 x = A @ x + B * self.U[k]
                 y = C @ x + D * self.U[k]
+                t = k * dt
 
                 if not tf:
                     for i in range(len(x.flatten())):
                         k = i + 1
                         outputs['x%d' % k].append(np.asscalar(x.flatten()[i]))
+                        db.save_test_sensor_value('Simulation', 'x%d' % k,
+                                                  np.asscalar(x.flatten()[i]),
+                                                  t, start_time)
 
                 if C.shape[0] > 1:
                     for i in range(C.shape[0]):
                         k = i + 1
                         outputs['y%d' % k].append(np.asscalar(y.flatten()[i]))
+                        db.save_test_sensor_value('Simulation', 'y%d' % k,
+                                                  np.asscalar(y.flatten()[i]),
+                                                  t, start_time)
                 else:
                     outputs['y'].append(np.asscalar(y))
+                    db.save_test_sensor_value('Simulation', 'y',
+                                              np.asscalar(y), t, start_time)
 
             outputs['t'] = [dt * k for k in outputs['t']]
+
             return json.dumps(outputs)
         except Exception as e:
             return json.dumps({'error': f'Error in simulation ({str(e)})'})
