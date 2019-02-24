@@ -61,15 +61,20 @@ class ModelSimulation(object):
             tf = len(self.model) < 4
 
             if len(self.model) % 2 == 1:
-                dt = float(self.model[-1])
+                *self.model, dt = self.model
+                dt = np.asscalar(dt)
+                G = scipy.signal.dlti(*self.model, dt=dt)
+                G = scipy.signal.StateSpace(G)
+                self.model = G.A, G.B, G.C, G.D
             else:
-                if len(self.model) == 2:
-                    self.model = scipy.signal.tf2ss(*self.model)
-                vals = scipy.linalg.eigvals(self.model[0])
+                G = scipy.signal.lti(*self.model)
+                G = scipy.signal.StateSpace(G)
+                self.model = G.A, G.B, G.C, G.D
+                vals = scipy.linalg.eigvals(G.A)
                 dt = max(0.1, float('%.1f' % (max(abs(np.real(vals))) / 5)))
                 if type(self.U) == list:
                     dt = self.T / len(self.U)
-                self.model = scipy.signal.cont2discrete(self.model, dt)
+                *self.model, _ = scipy.signal.cont2discrete(self.model, dt)
 
             if type(self.U) == list:
                 self.T = list(range(len(self.U)))
@@ -77,7 +82,7 @@ class ModelSimulation(object):
                 self.T = list(range(int(self.T // dt)))
                 self.U = [self.U for _ in self.T]
 
-            A, B, C, D, _ = self.model
+            A, B, C, D = self.model
             x = self.x0 if not tf else np.zeros((A.shape[0], 1))
             outputs = {'u': self.U, 't': self.T}
 
