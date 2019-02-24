@@ -120,8 +120,8 @@ def download_snap7_linux(use_sudo):
             os.system(f'make -f {arch}_linux.mk')
         lib = f'snap7-full-1.4.2/build/bin/{arch}-linux/libsnap7.so'
         os.system(f'{sudo} cp {lib} {os.path.join(opt, "libsnap7.so")}')
-        os.chmod(os.path.join(opt, 'libsnap7.so'), 0o777)
-        os.system(f'{sudo} ldconfig /opt')
+        os.system(f'{sudo} chmod 777 {os.path.join(opt, "libsnap7.so")}')
+        os.system(f'{sudo} ldconfig {os.path.join(opt, "libsnap7.so")}')
         os.remove('snap7.zip')
         shutil.rmtree('snap7-full-1.4.2')
         return True
