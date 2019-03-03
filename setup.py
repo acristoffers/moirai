@@ -64,6 +64,7 @@ setup(
     version=moirai.__version__,
     description='Digital Control Manager Backend',
     long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         'Development Status :: 5 - Production/Stable',
