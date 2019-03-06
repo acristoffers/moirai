@@ -58,6 +58,7 @@ class PID(object):
         self.db = DatabaseV1()
         self.start_time = datetime.datetime.utcnow()
         self.locks = []
+        self.graph_id = None
 
     def is_valid(self):
         return (time.time() - self.last_run) < max(2 * self.timer.interval, 1)
@@ -92,16 +93,15 @@ class PID(object):
                     self.start_time = datetime.datetime.utcnow()
                     self.hardware = ConfiguredHardware()
                     self.last_run = time.time()
+                    self.graph_id = self.db.save_test('PID', self.start_time)
 
                     for output in self.fixedOutputs:
                         self.hardware.write(output['alias'], output['value'])
 
-                    self.db.save_test_sensor_value('PID', self.y, 0, 0,
-                                                   self.start_time)
-                    self.db.save_test_sensor_value('PID', self.u, 0, 0,
-                                                   self.start_time)
-                    self.db.save_test_sensor_value('PID', 'R', self.r, 0,
-                                                   self.start_time)
+                    self.db.save_test_sensor_value(self.graph_id, self.y, 0, 0)
+                    self.db.save_test_sensor_value(self.graph_id, self.u, 0, 0)
+                    self.db.save_test_sensor_value(self.graph_id, 'R', self.r,
+                                                   0)
 
                 self.timer.sleep()
 
@@ -114,15 +114,12 @@ class PID(object):
                 self.hardware.write(self.u, u)
                 self.le = e
 
-                self.db.save_test_sensor_value('PID', self.y, y,
-                                               self.timer.elapsed(),
-                                               self.start_time)
-                self.db.save_test_sensor_value('PID', self.u, u,
-                                               self.timer.elapsed(),
-                                               self.start_time)
-                self.db.save_test_sensor_value('PID', 'R', self.r,
-                                               self.timer.elapsed(),
-                                               self.start_time)
+                self.db.save_test_sensor_value(self.graph_id, self.y, y,
+                                               self.timer.elapsed())
+                self.db.save_test_sensor_value(self.graph_id, self.u, u,
+                                               self.timer.elapsed())
+                self.db.save_test_sensor_value(self.graph_id, 'R', self.r,
+                                               self.timer.elapsed())
 
                 for lock in self.locks:
                     lock()

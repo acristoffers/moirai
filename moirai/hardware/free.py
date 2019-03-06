@@ -50,6 +50,7 @@ class Free(object):
         self.locks = []
         self.inputs = []
         self.outputs = []
+        self.graph_id = None
 
     def is_valid(self):
         return (time.time() - self.last_run) < max(2 * self.timer.interval, 1)
@@ -77,27 +78,27 @@ class Free(object):
                     self.start_time = datetime.datetime.utcnow()
                     self.hardware = ConfiguredHardware()
                     self.last_run = time.time()
+                    self.graph_id = self.db.save_test('Free', self.start_time)
 
                     for output in self.outputs:
-                        self.db.save_test_sensor_value('Free', output['alias'],
-                                                       0, 0, self.start_time)
+                        self.db.save_test_sensor_value(self.graph_id,
+                                                       output['alias'], 0, 0)
                     for input in self.inputs:
-                        self.db.save_test_sensor_value('Free', input, 0, 0,
-                                                       self.start_time)
+                        self.db.save_test_sensor_value(self.graph_id, input, 0,
+                                                       0)
 
                 self.timer.sleep()
 
                 for output in self.outputs:
                     self.hardware.write(output['alias'], output['value'])
                     self.db.save_test_sensor_value(
-                        'Free', output['alias'], output['value'],
-                        self.timer.elapsed(), self.start_time)
+                        self.graph_id, output['alias'], output['value'],
+                        self.timer.elapsed())
 
                 for input in self.inputs:
                     value = self.hardware.read(input)
-                    self.db.save_test_sensor_value('Free', input, value,
-                                                   self.timer.elapsed(),
-                                                   self.start_time)
+                    self.db.save_test_sensor_value(self.graph_id, input, value,
+                                                   self.timer.elapsed())
 
                 for lock in self.locks:
                     lock()

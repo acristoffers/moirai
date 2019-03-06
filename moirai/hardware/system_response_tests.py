@@ -75,6 +75,7 @@ class SystemResponseTest(object):
         start_time = datetime.datetime.utcnow()
         last_port_value = 0
         t_elapsed = 0
+        graph_id = self.db.save_test(self.test['name'], start_time)
 
         try:
             while self.db.get_setting('current_test') is not None:
@@ -83,17 +84,15 @@ class SystemResponseTest(object):
 
                 for sensor in self.test['inputs']:
                     value = self.hardware.read(sensor)
-                    self.db.save_test_sensor_value(self.test['name'], sensor,
-                                                   value, t_elapsed,
-                                                   start_time)
+                    self.db.save_test_sensor_value(graph_id, sensor, value,
+                                                   t_elapsed)
 
                 for point in self.test['points']:
                     if t.elapsed() < point['x']:
                         for port in ports:
                             self.hardware.write(port, point['y'])
                             self.db.save_test_sensor_value(
-                                self.test['name'], port, point['y'], t_elapsed,
-                                start_time)
+                                graph_id, port, point['y'], t_elapsed)
                         last_port_value = point['y']
                         break
 
@@ -105,9 +104,8 @@ class SystemResponseTest(object):
             self.db.set_setting('test_error', str(e))
 
         for port in ports:
-            self.db.save_test_sensor_value(self.test['name'], port,
-                                           last_port_value, t.elapsed(),
-                                           start_time)
+            self.db.save_test_sensor_value(graph_id, port, last_port_value,
+                                           t.elapsed())
 
         for o in self.test['afterOutputs']:
             self.hardware.write(o['alias'], o['value'])

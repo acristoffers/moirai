@@ -596,13 +596,13 @@ class APIv1:
         ts = request.json
         if isinstance(ts, list):
             ts = [{
-                'test': t['test'],
-                'start_time': dateutil.parser.parse(t['start_time'])
+                'name': t['test'],
+                'date': dateutil.parser.parse(t['start_time'])
             } for t in ts]
         else:
             ts = {
-                'test': ts['test'],
-                'start_time': dateutil.parser.parse(ts['start_time'])
+                'name': ts['test'],
+                'date': dateutil.parser.parse(ts['start_time'])
             }
 
         self.database.remove_test(ts)
@@ -772,11 +772,11 @@ class APIv1:
         if not self.verify_token():
             return '{}', 403
 
-        settings, test_sensor_values = self.database.dump_database()
-        data = {'settings': settings, 'test_sensor_values': test_sensor_values}
+        settings, graphs = self.database.dump_database()
+        data = {'settings': settings, 'graphs': graphs}
         jsondata = json.dumps(data, default=json_util.default)
 
-        del data, settings, test_sensor_values  # release memory
+        del data, settings, graphs  # release memory
 
         zbuffer = io.BytesIO()
         with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
@@ -816,7 +816,10 @@ class APIv1:
             jsondata = zip_file.read('dump')
             d = json.loads(jsondata, object_hook=json_util.object_hook)
             del jsondata
-            db.restore_database(d['settings'], d['test_sensor_values'])
+            if 'test_sensor_values' in d:
+                db.restore_database_v1(d['settings'], d['test_sensor_values'])
+            else:
+                db.restore_database_v2(d['settings'], d['graphs'])
         return '{}'
 
     def __ports_for_driver(self, driver):

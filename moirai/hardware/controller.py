@@ -169,6 +169,7 @@ class Controller(object):
             t = Timer(run_time, interval)
             start_time = datetime.datetime.utcnow()
             time = 0
+            graph_id = self.db.save_test(self.cs['name'], start_time)
 
             while self.db.get_setting(
                     'current_test') is not None and self.running:
@@ -200,8 +201,7 @@ class Controller(object):
                     self.hardware.write(k, v)
 
                 for k, v in plocals['log'].items():
-                    cid = self.cs['name']
-                    self.db.save_test_sensor_value(cid, k, v, time, start_time)
+                    self.db.save_test_sensor_value(graph_id, k, v, time)
                 self.lock.release()
 
                 state = plocals['s']

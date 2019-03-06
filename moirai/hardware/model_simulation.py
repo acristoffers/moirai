@@ -98,6 +98,7 @@ class ModelSimulation(object):
 
             db = DatabaseV1()
             start_time = datetime.datetime.utcnow()
+            graph_id = db.save_test('Simulation', start_time)
 
             for k in self.T:
                 x = A @ x + B * self.U[k]
@@ -108,21 +109,20 @@ class ModelSimulation(object):
                     for i in range(len(x.flatten())):
                         k = i + 1
                         outputs['x%d' % k].append(np.asscalar(x.flatten()[i]))
-                        db.save_test_sensor_value('Simulation', 'x%d' % k,
+                        db.save_test_sensor_value(graph_id, 'x%d' % k,
                                                   np.asscalar(x.flatten()[i]),
-                                                  t, start_time)
+                                                  t)
 
                 if C.shape[0] > 1:
                     for i in range(C.shape[0]):
                         k = i + 1
                         outputs['y%d' % k].append(np.asscalar(y.flatten()[i]))
-                        db.save_test_sensor_value('Simulation', 'y%d' % k,
+                        db.save_test_sensor_value(graph_id, 'y%d' % k,
                                                   np.asscalar(y.flatten()[i]),
-                                                  t, start_time)
+                                                  t)
                 else:
                     outputs['y'].append(np.asscalar(y))
-                    db.save_test_sensor_value('Simulation', 'y',
-                                              np.asscalar(y), t, start_time)
+                    db.save_test_sensor_value(graph_id, 'y', np.asscalar(y), t)
 
             outputs['t'] = [dt * k for k in outputs['t']]
 
