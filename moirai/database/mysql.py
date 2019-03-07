@@ -340,7 +340,7 @@ class DatabaseV1(object):
 
             query = 'SELECT DISTINCT test, start_time FROM moirai.sensor_values'
             cur.execute(query)
-            graphs = list(cur)
+            graphs = set(cur)
             query = '''INSERT INTO `moirai`.`graphs` (`name`,`date`)
                               VALUE (%s, %s)'''
             cur.executemany(query, graphs)
