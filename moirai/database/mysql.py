@@ -235,6 +235,7 @@ class DatabaseV1(object):
         cur = cnx.cursor(True)
         cur.execute('DROP DATABASE IF EXISTS `moirai`')
         self.__init_db()
+        cur.execute('USE moirai')
         cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`sensor_values` 
                        ( `id` INT NOT NULL AUTO_INCREMENT,
                        `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
@@ -312,10 +313,11 @@ class DatabaseV1(object):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
 
-        query = 'SELECT `value` FROM moirai.settings WHERE `key`="version"'
+        query = 'SELECT `value` FROM `moirai`.`settings` WHERE `key`="version"'
         cur.execute(query)
         version = list(cur)
         if len(version) == 0:
+            cur.execute('USE moirai')
             cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs` 
                        (`id` INT NOT NULL AUTO_INCREMENT,
                        `name` VARCHAR(100) NOT NULL, `date` DATETIME NOT NULL,
