@@ -153,7 +153,7 @@ def start():
         )
         print('\t--set-password=pwd Sets the password to pwd')
         print(
-            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] Saves the dabatase configuration.'
+            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] [--host=127.0.0.1] Saves the dabatase configuration.'
         )
         print('')
         print('\tThe installer does not behave well with PyENV')
@@ -186,7 +186,8 @@ def start():
             opts = {
                 'adapter': opts['db'],
                 'username': opts.get('username', None),
-                'password': opts.get('password', None)
+                'password': opts.get('password', None),
+                'host': opts.get('host', None)
             }
             opts = {k: v for k, v in opts.items() if v is not None}
             newcfg = {'database': opts}
