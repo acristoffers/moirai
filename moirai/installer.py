@@ -181,6 +181,7 @@ def install(use_sudo=False):
                 print(f'Will now execute: [{cmd}]')
                 result = os.system(cmd)
                 with open('%s/.moirai.json' % str(Path.home()), 'a+') as f:
+                    f.seek(0)
                     c = f.read()
                     if not c:
                         f.write('{"database":{"adapter":"mysql"}}')

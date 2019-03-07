@@ -46,14 +46,15 @@ The lifetime thus becomes:
 """
 
 import hashlib
+import json
 import os
 import signal
 import sys
 import time
 from multiprocessing import Pipe, Process
+from pathlib import Path
 
-from moirai import __version__
-from moirai import decorators
+from moirai import __version__, decorators
 from moirai.database import DatabaseV1
 from moirai.installer import install
 
@@ -151,6 +152,9 @@ def start():
             '\t--sudo Uses sudo to install packages. You still need write access to /opt.'
         )
         print('\t--set-password=pwd Sets the password to pwd')
+        print(
+            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] Saves the dabatase configuration.'
+        )
         print('')
         print('\tThe installer does not behave well with PyENV')
         return
@@ -158,6 +162,41 @@ def start():
     if '--install' in sys.argv:
         install('--sudo' in sys.argv)
         return
+
+    for arg in sys.argv:
+        if arg.startswith('--set-password='):
+            pswd = arg.split('=')[-1]
+            if not pswd:
+                print('Password is mandatory.')
+                return
+            else:
+                hasher = hashlib.sha512()
+                hasher.update(bytes(pswd, 'utf-8'))
+                pswd = hasher.hexdigest()
+            print("Setting password to %s" % pswd)
+            database = DatabaseV1()
+            database.set_setting('password', pswd)
+            return
+        elif arg.startswith('--db='):
+            opts = {
+                k: v
+                for k, v in (arg.replace('--', '').split('=')
+                             for arg in sys.argv if arg.startswith('--'))
+            }
+            opts = {
+                'adapter': opts['db'],
+                'username': opts.get('username', None),
+                'password': opts.get('password', None)
+            }
+            opts = {k: v for k, v in opts.items() if v is not None}
+            newcfg = {'database': opts}
+            with open('%s/.moirai.json' % str(Path.home()), 'a+') as f:
+                f.seek(0)
+                cfg = json.loads(f.read() or '{}')
+                cfg = {**cfg, **newcfg}
+            with open('%s/.moirai.json' % str(Path.home()), 'w+') as f:
+                f.write(json.dumps(cfg))
+            return
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
@@ -170,31 +209,11 @@ def start():
         spawn_process(process)
 
     time.sleep(1)
-
     while not all([query_alive(p) for p in PROCESSES]):
         pass
-
-    # parses command line arguments
-    has_cmd = False
-    for arg in sys.argv:
-        if arg.startswith('--set-password='):
-            pswd = arg.split('=')[-1]
-            if not pswd:
-                pswd = None
-            else:
-                hasher = hashlib.sha512()
-                hasher.update(bytes(pswd, 'utf-8'))
-                pswd = hasher.hexdigest()
-            print("Setting password to %s" % pswd)
-            has_cmd = True
-            database = DatabaseV1()
-            database.set_setting('password', pswd)
-    if has_cmd:
-        signal_handler(None, None)
-    else:
-        for process in PS:
-            init(process)
-        time.sleep(1)
+    for process in PS:
+        init(process)
+    time.sleep(1)
     last_message = time.time() + 60
 
     while True:
