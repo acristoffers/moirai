@@ -121,7 +121,8 @@ def download_snap7_linux(use_sudo):
         lib = f'snap7-full-1.4.2/build/bin/{arch}-linux/libsnap7.so'
         os.system(f'{sudo} cp {lib} {os.path.join(opt, "libsnap7.so")}')
         os.system(f'{sudo} chmod 777 {os.path.join(opt, "libsnap7.so")}')
-        os.system(f'{sudo} ldconfig {os.path.join(opt, "libsnap7.so")}')
+        os.system(f'echo "{opt}" | {sudo} tee -a /etc/ld.so.conf.d/moirai')
+        os.system(f'{sudo} ldconfig')
         os.remove('snap7.zip')
         shutil.rmtree('snap7-full-1.4.2')
         return True
