@@ -105,6 +105,8 @@ class ModelSimulation(object):
                 y = C @ x + D * self.U[k]
                 t = k * dt
 
+                db.save_test_sensor_value(graph_id, 'u', self.U[k], t)
+
                 if not tf:
                     for i in range(len(x.flatten())):
                         k = i + 1
