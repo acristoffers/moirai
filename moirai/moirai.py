@@ -205,7 +205,7 @@ def start():
     print('Starting Moirai...')
     print('To quit press CTRL+C (^C on Macs)')
     print('Logging to %s' % decorators.log_file_path())
-    print('Using ahio version ' % ahio.__version__)
+    print('Using ahio version %s' % ahio.__version__)
 
     # Creates a processs for each module of moirai
     for process in PS:
