@@ -54,6 +54,7 @@ import time
 from multiprocessing import Pipe, Process
 from pathlib import Path
 
+import ahio
 from moirai import __version__, decorators
 from moirai.database import DatabaseV1
 from moirai.installer import install
@@ -204,6 +205,7 @@ def start():
     print('Starting Moirai...')
     print('To quit press CTRL+C (^C on Macs)')
     print('Logging to %s' % decorators.log_file_path())
+    print('Using ahio version ' % ahio.__version__)
 
     # Creates a processs for each module of moirai
     for process in PS:

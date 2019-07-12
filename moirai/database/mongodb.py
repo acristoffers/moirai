@@ -84,6 +84,7 @@ class DatabaseV1(object):
         return graph['_id']
 
     def save_test_sensor_value(self, graph_id, sensor, value, time):
+        value = value if isinstance(value, int) else float(value)
         data = {
             'sensor': sensor,
             'value': value,

@@ -116,6 +116,7 @@ class DatabaseV1(object):
         query = '''INSERT INTO `moirai`.`graphs_data`
                         (`sensor`, `value`, `time`, `graph`)
                         VALUES (%s, %s, %s, %s)'''
+        value = value if isinstance(value, int) else float(value)
         cur.execute(query, (sensor, value, time, graph_id))
         cur.close()
         cnx.close()
@@ -236,7 +237,7 @@ class DatabaseV1(object):
         cur.execute('DROP DATABASE IF EXISTS `moirai`')
         self.__init_db()
         cur.execute('USE moirai')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`sensor_values` 
+        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`sensor_values`
                        ( `id` INT NOT NULL AUTO_INCREMENT,
                        `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
                        `time` FLOAT NOT NULL, `start_time` DATETIME NOT NULL,
@@ -252,7 +253,7 @@ class DatabaseV1(object):
                    UPDATE `key` = values(`key`), `value` = values(`value`)'''
         data = [(s['key'], json.dumps(s['value'])) for s in settings]
         cur.executemany(query, data)
-        query = '''INSERT INTO moirai.sensor_values 
+        query = '''INSERT INTO moirai.sensor_values
                     (`sensor`, `value`, `time`, `start_time`, `test`)
                    VALUES (%s, %s, %s, %s, %s)'''
         data = [(s['sensor'], s['value'], s['time'], s['start_time'],
@@ -284,7 +285,7 @@ class DatabaseV1(object):
                        PRIMARY KEY (`id`), UNIQUE INDEX `key_UNIQUE` (`id` ASC),
                        UNIQUE INDEX `key_idx` (`key` ASC))
                        ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs` 
+        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs`
                        (`id` INT NOT NULL AUTO_INCREMENT,
                        `name` VARCHAR(100) NOT NULL, `date` DATETIME NOT NULL,
                        PRIMARY KEY (`id`),
@@ -292,7 +293,7 @@ class DatabaseV1(object):
                        INDEX `date_idx` (`date` ASC),
                        INDEX `name_idx` (`name` ASC))
                        ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data` 
+        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data`
                        (`id` INT NOT NULL AUTO_INCREMENT,
                        `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
                        `time` FLOAT NOT NULL, `graph` INT NOT NULL,
@@ -303,7 +304,7 @@ class DatabaseV1(object):
                         REFERENCES graphs(id)
                         ON DELETE CASCADE)
                        ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''INSERT INTO moirai.settings (`key`, `value`) 
+        cur.execute('''INSERT INTO moirai.settings (`key`, `value`)
                               VALUES ("version", "1.0")
                               ON DUPLICATE KEY UPDATE `value`="1.0"''')
         cur.close()
@@ -318,7 +319,7 @@ class DatabaseV1(object):
         version = list(cur)
         if len(version) == 0:
             cur.execute('USE moirai')
-            cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs` 
+            cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs`
                        (`id` INT NOT NULL AUTO_INCREMENT,
                        `name` VARCHAR(100) NOT NULL, `date` DATETIME NOT NULL,
                        PRIMARY KEY (`id`),
@@ -326,7 +327,7 @@ class DatabaseV1(object):
                        INDEX `date_idx` (`date` ASC),
                        INDEX `name_idx` (`name` ASC))
                        ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-            cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data` 
+            cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data`
                        (`id` INT NOT NULL AUTO_INCREMENT,
                        `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
                        `time` FLOAT NOT NULL, `graph` INT NOT NULL,
@@ -358,7 +359,7 @@ class DatabaseV1(object):
                 cur.execute(query, (rowid, name, date))
 
             cur.execute('DROP TABLE IF EXISTS `moirai`.`sensor_values`')
-            cur.execute('''INSERT INTO `moirai`.`settings` (`key`, `value`) 
+            cur.execute('''INSERT INTO `moirai`.`settings` (`key`, `value`)
                                 VALUES ("version", "1.0")
                                 ON DUPLICATE KEY UPDATE `value`="1.0"''')
         cur.close()
