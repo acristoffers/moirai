@@ -51,7 +51,8 @@ class SystemResponseTest(object):
             scope = {'x': value}
             exec(code, None, scope)
             if scope['y']:
-                self.hardware.write(lock['actuator'], lock['actuatorValue'])
+                value = float(lock['actuatorValue'])
+                self.hardware.write(lock['actuator'], value)
                 self.db.set_setting('test_error', 'Interlock')
                 raise Exception('Interlock')
 
@@ -71,7 +72,7 @@ class SystemResponseTest(object):
         interval = self.test['logRate']
         t = Timer(run_time, interval)
         ports = self.test['output']  # Can be a list.
-        ports = [ports] if type(ports) == str else ports
+        ports = [ports] if isinstance(ports, str) else ports
         start_time = datetime.datetime.utcnow()
         last_port_value = 0
         t_elapsed = 0
