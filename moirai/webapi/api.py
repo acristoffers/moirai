@@ -127,6 +127,14 @@ class APIv1:
             view_func=self.controller_run,
             methods=['POST'])
         self.app.add_url_rule(
+            '/controllers/export',
+            view_func=self.controller_export,
+            methods=['POST'])
+        self.app.add_url_rule(
+            '/controllers/import',
+            view_func=self.controller_import,
+            methods=['POST'])
+        self.app.add_url_rule(
             '/controllers/stop',
             view_func=self.controller_stop,
             methods=['GET'])
@@ -733,6 +741,76 @@ class APIv1:
         self.ph.send_command("hardware", "run_controller", controller)
         return '{}'
 
+    def controller_export(self):
+        """
+        Exports the given controllers. It must be a POST request with the
+        following body:
+
+        {
+            controllers: number[]
+        }
+
+        @returns: On success, HTTP 200 Ok and body:
+
+            file-contents
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+
+        controllers = request.json['controllers']
+        cs = self.database.get_setting('controllers') or []
+        cs = [c for c in cs if c['id'] in controllers]
+        for c in cs:
+            c.pop('id', None)
+        jsondata = json.dumps(cs)
+
+        zbuffer = io.BytesIO()
+        with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
+            zip_file.writestr('dump', jsondata)
+        zbuffer.seek(0, 0)
+        return send_file(
+            zbuffer,
+            as_attachment=True,
+            attachment_filename='dump.zip',
+            mimetype="application/octet-stream")
+
+    def controller_import(self):
+        """
+        Restore controllers. It must be a POST request with following body:
+
+        file-contents
+
+        @returns:
+            On success, HTTP 200 Ok and body:
+
+            {}
+
+            On failure, HTTP 403 Unauthorized and body:
+
+            {}
+        """
+        if not self.verify_token():
+            return '{}', 403
+        file = tempfile.TemporaryFile()
+        file.write(request.files['file'].read())
+        file.seek(0)
+        with zipfile.ZipFile(file, "r", zipfile.ZIP_LZMA) as zip_file:
+            jsondata = zip_file.read('dump')
+            ns = json.loads(jsondata, object_hook=json_util.object_hook)
+            del jsondata
+            cs = self.database.get_setting('controllers') or []
+            lid = max([c['id'] for c in cs]) or 0
+            for n in ns:
+                lid += 1
+                n['id'] = lid
+                cs.append(n)
+            self.database.set_setting('controllers', cs)
+        return '{}'
+
     def controller_stop(self):
         """
         Stops the running controller. It must be a GET request.
@@ -841,7 +919,7 @@ class APIv1:
         else:
             try:
                 port_id = json.dumps(port['id'])
-            except:
+            except BaseException:
                 pass
         port['id'] = port_id
         return port
