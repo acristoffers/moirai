@@ -803,7 +803,7 @@ class APIv1:
             ns = json.loads(jsondata, object_hook=json_util.object_hook)
             del jsondata
             cs = self.database.get_setting('controllers') or []
-            lid = max([c['id'] for c in cs]) or 0
+            lid = max([c['id'] for c in cs] or []) or 0
             for n in ns:
                 lid += 1
                 n['id'] = lid
