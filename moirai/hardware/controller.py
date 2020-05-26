@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import ahio
 import datetime
 
 import numpy as np
@@ -28,7 +27,6 @@ import math
 import threading
 import time
 
-import os
 import sys
 import traceback
 
@@ -46,7 +44,7 @@ class Controller(object):
             raise Exception('Controller not found')
         self.hardware = ConfiguredHardware()
         configuration = self.db.get_setting('hardware_configuration')
-        self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.locks = [self.interlock(lo) for lo in configuration['interlocks']]
         self.off_values = {
             p['alias']: float(p['defaultValue'])
             for p in configuration['ports'] if p['type'] & (8 | 16)
@@ -62,6 +60,7 @@ class Controller(object):
             error = err.__class__.__name__
             detail = err.args[0]
             line = err.lineno
+            scope = 'interlock'
             error_string = '%s on %s:%s: %s' % (error, scope, line, detail)
             print(error_string)
             self.db.set_setting('test_error', error_string)
@@ -97,7 +96,7 @@ class Controller(object):
             try:
                 for lock in self.locks:
                     lock()
-            except:
+            except:  # noqa: E722 pylint: disable=E722
                 try:
                     self.running = False
                     if self.after is not None:

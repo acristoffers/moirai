@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from multiprocessing import Pipe
 from threading import Thread
 
 from moirai.abstract_process_handler import AbstractProcessHandler

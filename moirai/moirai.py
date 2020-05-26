@@ -150,11 +150,13 @@ def start():
         print('\t--version Prints version')
         print('\t--install Tries to install dependencies.')
         print(
-            '\t--sudo Uses sudo to install packages. You still need write access to /opt.'
+            '\t--sudo Uses sudo to install packages. '
+            'You still need write access to /opt.'
         )
         print('\t--set-password=pwd Sets the password to pwd')
         print(
-            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] [--host=127.0.0.1] Saves the dabatase configuration.'
+            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] '
+            '[--host=127.0.0.1] Saves the dabatase configuration.'
         )
         print('')
         print('\tThe installer does not behave well with PyENV')

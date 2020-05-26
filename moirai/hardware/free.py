@@ -63,10 +63,10 @@ class Free(object):
                 self.timer.interval = float(data['dt'])
                 self.inputs = data['inputs']
                 self.outputs = [
-                    o for o in data['outputs'] if len(o['alias']) != 0
+                    out for out in data['outputs'] if len(out['alias']) != 0
                 ]
                 config = self.db.get_setting('hardware_configuration')
-                self.locks = [self.interlock(l) for l in config['interlocks']]
+                self.locks = list(map(self.interlock, config['interlocks']))
 
             if not self.is_valid():
                 self.running = False

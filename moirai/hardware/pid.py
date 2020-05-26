@@ -81,7 +81,7 @@ class PID(object):
                     o for o in data['fixedOutputs'] if len(o['alias']) != 0
                 ]
                 config = self.db.get_setting('hardware_configuration')
-                self.locks = [self.interlock(l) for l in config['interlocks']]
+                self.locks = list(map(self.interlock, config['interlocks']))
 
             if not self.is_valid():
                 self.running = False
@@ -98,10 +98,10 @@ class PID(object):
                     for output in self.fixedOutputs:
                         self.hardware.write(output['alias'], output['value'])
 
-                    self.db.save_test_sensor_value(self.graph_id, self.y, 0, 0)
-                    self.db.save_test_sensor_value(self.graph_id, self.u, 0, 0)
-                    self.db.save_test_sensor_value(self.graph_id, 'R', self.r,
-                                                   0)
+                    save = self.db.save_test_sensor_value
+                    save(self.graph_id, self.y, 0, 0)
+                    save(self.graph_id, self.u, 0, 0)
+                    save(self.graph_id, 'R', self.r, 0)
 
                 self.timer.sleep()
 
@@ -114,12 +114,10 @@ class PID(object):
                 self.hardware.write(self.u, u)
                 self.le = e
 
-                self.db.save_test_sensor_value(self.graph_id, self.y, y,
-                                               self.timer.elapsed())
-                self.db.save_test_sensor_value(self.graph_id, self.u, u,
-                                               self.timer.elapsed())
-                self.db.save_test_sensor_value(self.graph_id, 'R', self.r,
-                                               self.timer.elapsed())
+                save = self.db.save_test_sensor_value
+                save(self.graph_id, self.y, y, self.timer.elapsed())
+                save(self.graph_id, self.u, u, self.timer.elapsed())
+                save(self.graph_id, 'R', self.r, self.timer.elapsed())
 
                 for lock in self.locks:
                     lock()

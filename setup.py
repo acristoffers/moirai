@@ -40,7 +40,6 @@ class CleanCommand(Command):
         './build', './dist', './*.pyc', './*.tgz', './*.egg-info',
         './**/__pycache__'
     ]
-
     user_options = []
 
     def initialize_options(self):

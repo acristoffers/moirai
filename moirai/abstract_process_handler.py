@@ -20,10 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+This module contains the AbstractProcessHandler class.
+"""
+
 import time
 
 
-class AbstractProcessHandler(object):
+class AbstractProcessHandler:
     """
     Base class for modules ProcessHandlers. Defines the API used by two
     processes to communicate and execute code asynchronously.
@@ -85,8 +89,7 @@ class AbstractProcessHandler(object):
             if blocking or (not blocking and pipe.poll()):
                 self._last_message = time.time()
                 return pipe.recv()
-            else:
-                return (None, None)
+            return (None, None)
         except EOFError:
             sname = self._pname
             print('Communication between %s and %s is closed!' % (name, sname))
@@ -94,6 +97,9 @@ class AbstractProcessHandler(object):
             return (None, None)
 
     def flush(self):
+        """
+        Receive all messages.
+        """
         for _, pipe in self._pipes.items():
             while pipe.poll():
                 pipe.recv()
@@ -102,7 +108,6 @@ class AbstractProcessHandler(object):
         """
         Abstract method to be implemented by classes extending this class.
         """
-        pass
 
     def _process_command(self, name):
         cmd, args = self.read_pipe(name)
@@ -110,20 +115,21 @@ class AbstractProcessHandler(object):
             self.quitting = True
             self.send_command(name, 'ok', None)
             return 'quit'
-        elif cmd == 'close':
+        if cmd == 'close':
             pipe = self.pipe_for(name)
             pipe.send(('ok', None))
             self.set_pipe(name, None)
             if not self.pipes():
                 return 'quit'
-        elif cmd == 'connect':
+        if cmd == 'connect':
             print('Connected %s to %s' % (args[0], self._pname))
             self.set_pipe(*args)
             self.send_command(name, 'ok', None)
-        elif cmd == 'alive':
+        if cmd == 'alive':
             self.send_command(name, 'alive', None)
         else:
             self.process_command(name, cmd, args)
+        return None
 
     def request_connection(self, pkg_from, pkg_to):
         """
@@ -142,7 +148,6 @@ class AbstractProcessHandler(object):
         Main loop of the process, to be implemented by the class that inherits
         this class.
         """
-        pass
 
     def run(self):
         """
@@ -165,4 +170,3 @@ class AbstractProcessHandler(object):
         """
         Cleaning code before quitting.
         """
-        pass

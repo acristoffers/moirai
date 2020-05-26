@@ -21,6 +21,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+'''
+Moirai server installation functions.
+'''
+
 import glob
 import os
 import platform
@@ -51,55 +55,64 @@ def pi_version():
         cpuinfo = infile.read()
     # Match a line like 'Hardware   : BCM2709'
     match = re.search(
-        '^Hardware\s+:\s+(\w+)$', cpuinfo, flags=re.MULTILINE | re.IGNORECASE)
+        r'^Hardware\s+:\s+(\w+)$', cpuinfo, flags=re.MULTILINE | re.IGNORECASE)
     if not match:
         # Couldn't find the hardware, assume it isn't a pi.
         return None
     if match.group(1) == 'BCM2708':
         # Pi 1
         return 1
-    elif match.group(1) == 'BCM2709':
+    if match.group(1) == 'BCM2709':
         # Pi 2
         return 2
-    elif match.group(1) == 'BCM2835':
+    if match.group(1) == 'BCM2835':
         # Pi 3
         return 3
-    else:
-        # Something else, not a pi.
-        return None
+    # Something else, not a pi.
+    return None
 
 
-class cd:
+class CD:
     """Context manager for changing the current working directory"""
 
-    def __init__(self, newPath):
-        self.newPath = os.path.expanduser(newPath)
+    def __init__(self, new_path):
+        self.new_path = os.path.expanduser(new_path)
+        self.saved_path = None
 
     def __enter__(self):
-        self.savedPath = os.getcwd()
-        os.chdir(self.newPath)
+        self.saved_path = os.getcwd()
+        os.chdir(self.new_path)
 
     def __exit__(self, etype, value, traceback):
-        os.chdir(self.savedPath)
+        os.chdir(self.saved_path)
 
 
 def download_mysql_connector(use_sudo):
+    '''
+    Downloads MySQL Connector
+    '''
     sudo = 'sudo' if use_sudo else ''
     print('Downloading MySQL Connector/Python')
     try:
-        url = 'https://dev.mysql.com/get/Downloads/Connector-Python/mysql-connector-python-2.1.7.tar.gz'
+        url = (
+            'https://dev.mysql.com/get/Downloads/Connector-Python'
+            '/mysql-connector-python-2.1.7.tar.gz'
+        )
         contents = urlopen(url).read()
-        with open('mysql.txz', 'wb') as f:
-            f.write(contents)
+        with open('mysql.txz', 'wb') as file:
+            file.write(contents)
         os.system('tar xf mysql.txz')
-        with cd('mysql-connector-python-2.1.7'):
+        with CD('mysql-connector-python-2.1.7'):
             os.system('%s %s setup.py install' % (sudo, sys.executable))
         return True
-    except:
+    except:  # noqa: E722 pylint: disable=E722
         return False
 
 
 def download_snap7_linux(use_sudo):
+    '''
+    Downloads Snap7 for Linux
+    '''
     sudo = 'sudo' if use_sudo else ''
     arch = {
         'x64': 'x86_64',
@@ -111,12 +124,15 @@ def download_snap7_linux(use_sudo):
     print('Downloading snap7...')
     try:
         if not os.path.exists('snap7.zip'):
-            snap7url = 'https://sourceforge.net/projects/snap7/files/1.4.2/snap7-full-1.4.2.7z/download'
+            snap7url = (
+                'https://sourceforge.net/projects/snap7/'
+                'files/1.4.2/snap7-full-1.4.2.7z/download'
+            )
             contents = urlopen(snap7url).read()
-            with open('snap7.zip', 'wb') as f:
-                f.write(contents)
+            with open('snap7.zip', 'wb') as file:
+                file.write(contents)
         os.system('7z x -y snap7.zip')
-        with cd('snap7-full-1.4.2/build/unix'):
+        with CD('snap7-full-1.4.2/build/unix'):
             os.system(f'make -f {arch}_linux.mk')
         lib = f'snap7-full-1.4.2/build/bin/{arch}-linux/libsnap7.so'
         os.system(f'{sudo} cp {lib} {os.path.join(opt, "libsnap7.so")}')
@@ -126,17 +142,23 @@ def download_snap7_linux(use_sudo):
         os.remove('snap7.zip')
         shutil.rmtree('snap7-full-1.4.2')
         return True
-    except:
+    except:  # noqa: E722 pylint: disable=E722
         return False
 
 
 def download_snap7_win():
+    '''
+    Downloads Snap7 for Windows
+    '''
     print('Downloading snap7...')
     try:
-        snap7url = 'https://sourceforge.net/projects/snap7/files/latest/download?source=files'
+        snap7url = (
+            'https://sourceforge.net/projects/snap7/'
+            'files/latest/download?source=files'
+        )
         contents = urlopen(snap7url).read()
-        with open('snap7.zip', 'wb') as f:
-            f.write(contents)
+        with open('snap7.zip', 'wb') as file:
+            file.write(contents)
         with zipfile.ZipFile('snap7.zip', 'r') as zip_ref:
             zip_ref.extractall('snap7')
         dll = list(glob.iglob('snap7/**/*.dll'))[0]
@@ -144,11 +166,217 @@ def download_snap7_win():
         os.remove('snap7.zip')
         shutil.rmtree('snap7')
         return True
-    except:
+    except:  # noqa: E722 pylint: disable=E722
         return False
 
 
+def install_macos():
+    '''
+    Installs on macOS
+    '''
+    print('Platform: macOS')
+    brew = os.popen('which brew').read()
+    if len(brew) > 0:
+        print('Using Homebrew to install dependencies.')
+        print('Will now execute: [brew install mongodb snap7]')
+        result = os.system('brew install mongodb snap7')
+        if result == 0:
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('brew install mongodb snap7')
+    else:
+        print('Homebrew not installed, cannot continue alone.')
+        print('You need to install MongoDB and snap7.')
+        print('https://www.mongodb.com')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_raspberry(sudo, use_sudo):
+    '''
+    Installs on Raspberry Pi
+    '''
+    print('Platform: Raspberry Pi')
+    cmd = sudo + (
+        'DEBIAN_FRONTEND=noninteractive apt-get install -y '
+        'mysql-server build-essential p7zip-full'
+    )
+    print('Using APT to install dependencies.')
+    print(f'Will now execute: [{cmd}]')
+    result = os.system(cmd)
+    with open('%s/.moirai.json' % str(Path.home()), 'a+') as file:
+        file.seek(0)
+        contents = file.read()
+        if not contents:
+            file.write('{"database":{"adapter":"mysql"}}')
+    if result == 0:
+        mysql = download_mysql_connector(use_sudo)
+        snap7 = download_snap7_linux(use_sudo)
+        if mysql and snap7:
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('Something went wrong. Try installing manually:')
+        print(cmd)
+        print('After that, you need to install snap7.')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_open_suse(sudo, use_sudo):
+    '''
+    Installs on openSUSE
+    '''
+    print('Platform: OpenSuse')
+    cmd1 = sudo + 'zypper -n in -t pattern devel_basis'
+    cmd2 = sudo + 'zypper -n in mongodb p7zip'
+    print('Using Zypper to install dependencies.')
+    print(f'Will now execute: [{cmd1}]')
+    result1 = os.system(cmd1)
+    print(f'Will now execute: [{cmd2}]')
+    result2 = os.system(cmd2)
+    if result1 == 0 and result2 == 0:
+        if download_snap7_linux(use_sudo):
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('Something went wrong. Try installing manually:')
+        print(cmd1)
+        print(cmd2)
+        print('After that, you need to install snap7.')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_debian(sudo, use_sudo):
+    '''
+    Intalls on Debian
+    '''
+    print('Platform: Debian')
+    cmd = sudo + 'apt-get install -y mongodb-server build-essential p7zip-full'
+    print('Using APT to install dependencies.')
+    print(f'Will now execute: [{cmd}]')
+    result = os.system(cmd)
+    if result == 0:
+        if download_snap7_linux(use_sudo):
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('Something went wrong. Try installing manually:')
+        print(cmd)
+        print('After that, you need to install snap7.')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_fedora_dnf(sudo, use_sudo):
+    '''
+    Intalls on Fedora using DNF
+    '''
+    print('Platform: Fedora')
+    cmd = sudo + 'dnf install -y @development-tools p7zip mongodb-server'
+    print('Using DNF to install dependencies.')
+    print(f'Will now execute: [{cmd}]')
+    result = os.system(cmd)
+    if result == 0:
+        if download_snap7_linux(use_sudo):
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('Something went wrong. Try installing manually:')
+        print(cmd)
+        print('After that, you need to install snap7.')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_fedora_yum(sudo, use_sudo):
+    '''
+    Installs on Fedora using YUM
+    '''
+    print('Platform: Fedora')
+    cmd1 = sudo + (
+        'yum groupinstall -y '
+        '"Development Tools" "Development Libraries"'
+    )
+    cmd2 = sudo + 'yum install -y p7zip mongodb-server'
+    print('Using YUM to install dependencies.')
+    print(f'Will now execute: [{cmd1}]')
+    result1 = os.system(cmd1)
+    print(f'Will now execute: [{cmd2}]')
+    result2 = os.system(cmd2)
+    if result1 == 0 and result2 == 0:
+        if download_snap7_linux(use_sudo):
+            print('Installation finished.')
+        else:
+            print('Something went wrong. Try installing manually:')
+            print('https://sourceforge.net/projects/snap7/files')
+    else:
+        print('Something went wrong. Try installing manually:')
+        print(cmd1)
+        print(cmd2)
+        print('After that, you need to install snap7.')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_linux(use_sudo):
+    '''
+    Installs on Linux
+    '''
+    sudo = 'sudo ' if use_sudo else ''
+    if pi_version() is not None:
+        install_raspberry(sudo, use_sudo)
+    elif len(os.popen('which zypper').read()) > 0:
+        install_open_suse(sudo, use_sudo)
+    elif len(os.popen('which apt-get').read()) > 0:
+        install_debian(sudo, use_sudo)
+    elif len(os.popen('which dnf').read()) > 0:
+        install_fedora_dnf(sudo, use_sudo)
+    elif len(os.popen('which yum').read()) > 0:
+        install_fedora_yum(sudo, use_sudo)
+    else:
+        print('You need to install MongoDB and snap7.')
+        print('https://www.mongodb.com')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
+def install_windows():
+    '''
+    Intalls on Windows
+    '''
+    print('Trying to install MongoDB and snap7...')
+    if download_snap7_win():
+        print('Downloading MongoDB...')
+        mongo = (
+            'https://fastdl.mongodb.org/win32/'
+            'mongodb-win32-x86_64-2008plus-ssl-4.0.1-signed.msi'
+        )
+        contents = urlopen(mongo).read()
+        with open('mongo.msi', 'wb') as file:
+            file.write(contents)
+        result = os.system(
+            r'msiexec.exe /q /i mongo.msi INSTALLLOCATION='
+            r'"C:\Program Files\MongoDB\Server\4.0.1\" ADDLOCAL="all"'
+        )
+        if result:
+            print('Installation finished.')
+        else:
+            print('You need to install MongoDB.')
+            print('https://www.mongodb.com')
+    else:
+        print('You need to install MongoDB and snap7.')
+        print('https://www.mongodb.com')
+        print('https://sourceforge.net/projects/snap7/files')
+
+
 def install(use_sudo=False):
+    '''
+    Installs moirai dependencies
+    '''
     try:
         osname = platform.system()
         if osname == 'Windows':
@@ -156,157 +384,17 @@ def install(use_sudo=False):
             print('https://www.mongodb.com')
             print('')
         elif osname == 'Darwin':
-            print('Platform: macOS')
-            brew = os.popen('which brew').read()
-            if len(brew) > 0:
-                print('Using Homebrew to install dependencies.')
-                print('Will now execute: [brew install mongodb snap7]')
-                result = os.system('brew install mongodb snap7')
-                if result == 0:
-                    print('Installation finished.')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print('brew install mongodb snap7')
-            else:
-                print('Homebrew not installed, cannot continue alone.')
-                print('You need to install MongoDB and snap7.')
-                print('https://www.mongodb.com')
-                print('https://sourceforge.net/projects/snap7/files')
+            install_macos()
         elif osname == 'Linux':
-            success = False
-            sudo = 'sudo ' if use_sudo else ''
-            if pi_version() is not None:
-                print('Platform: Raspberry Pi')
-                cmd = sudo + 'DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server build-essential p7zip-full'
-                print('Using APT to install dependencies.')
-                print(f'Will now execute: [{cmd}]')
-                result = os.system(cmd)
-                with open('%s/.moirai.json' % str(Path.home()), 'a+') as f:
-                    f.seek(0)
-                    c = f.read()
-                    if not c:
-                        f.write('{"database":{"adapter":"mysql"}}')
-                if result == 0:
-                    mysql = download_mysql_connector(use_sudo)
-                    snap7 = download_snap7_linux(use_sudo)
-                    if mysql and snap7:
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print(cmd)
-                    print('After that, you need to install snap7.')
-                    print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which zypper').read()) > 0:
-                print('Platform: OpenSuse')
-                cmd1 = sudo + 'zypper -n in -t pattern devel_basis'
-                cmd2 = sudo + 'zypper -n in mongodb p7zip'
-                print('Using Zypper to install dependencies.')
-                print(f'Will now execute: [{cmd1}]')
-                result1 = os.system(cmd1)
-                print(f'Will now execute: [{cmd2}]')
-                result2 = os.system(cmd2)
-                if result1 == 0 and result2 == 0:
-                    if download_snap7_linux(use_sudo):
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print(cmd1)
-                    print(cmd2)
-                    print('After that, you need to install snap7.')
-                    print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which apt-get').read()) > 0:
-                print('Platform: Debian')
-                cmd = sudo + 'apt-get install -y mongodb-server build-essential p7zip-full'
-                print('Using APT to install dependencies.')
-                print(f'Will now execute: [{cmd}]')
-                result = os.system(cmd)
-                if result == 0:
-                    if download_snap7_linux(use_sudo):
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print(cmd)
-                    print('After that, you need to install snap7.')
-                    print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which dnf').read()) > 0:
-                print('Platform: Fedora')
-                cmd = sudo + 'dnf install -y @development-tools p7zip mongodb-server'
-                print('Using DNF to install dependencies.')
-                print(f'Will now execute: [{cmd}]')
-                result = os.system(cmd)
-                if result == 0:
-                    if download_snap7_linux(use_sudo):
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print(cmd)
-                    print('After that, you need to install snap7.')
-                    print('https://sourceforge.net/projects/snap7/files')
-            elif len(os.popen('which yum').read()) > 0:
-                print('Platform: Fedora')
-                cmd1 = sudo + 'yum groupinstall -y "Development Tools" "Development Libraries"'
-                cmd2 = sudo + 'yum install -y p7zip mongodb-server'
-                print('Using YUM to install dependencies.')
-                print(f'Will now execute: [{cmd1}]')
-                result1 = os.system(cmd1)
-                print(f'Will now execute: [{cmd2}]')
-                result2 = os.system(cmd2)
-                if result1 == 0 and result2 == 0:
-                    if download_snap7_linux(use_sudo):
-                        print('Installation finished.')
-                    else:
-                        print('Something went wrong. Try installing manually:')
-                        print('https://sourceforge.net/projects/snap7/files')
-                else:
-                    print('Something went wrong. Try installing manually:')
-                    print(cmd1)
-                    print(cmd2)
-                    print('After that, you need to install snap7.')
-                    print('https://sourceforge.net/projects/snap7/files')
-            else:
-                print('You need to install MongoDB and snap7.')
-                print('https://www.mongodb.com')
-                print('https://sourceforge.net/projects/snap7/files')
+            install_linux(use_sudo)
         elif osname == 'Windows':
-            print('Trying to install MongoDB and snap7...')
-            if download_snap7_win():
-                print('Downloading MongoDB...')
-                mongo = 'https://fastdl.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-4.0.1-signed.msi'
-                contents = urlopen(mongo).read()
-                with open('mongo.msi', 'wb') as f:
-                    f.write(contents)
-                result = os.system(
-                    r'msiexec.exe /q /i mongo.msi INSTALLLOCATION="C:\Program Files\MongoDB\Server\4.0.1\" ADDLOCAL="all"'
-                )
-                if result:
-                    print('Installation finished.')
-                else:
-                    print('You need to install MongoDB.')
-                    print('https://www.mongodb.com')
-            else:
-                print('You need to install MongoDB and snap7.')
-                print('https://www.mongodb.com')
-                print('https://sourceforge.net/projects/snap7/files')
+            install_windows()
         else:
             print('You need to install MongoDB and snap7.')
             print('https://www.mongodb.com')
             print('https://sourceforge.net/projects/snap7/files')
-    except:
+    except:  # noqa: E722 pylint: disable=E722
         print('Something went wrong. Try installing manually.')
-        print(
-            'You need to install MongoDB (or MySQL for Raspberry 32bits) and snap7.'
-        )
+        print('You need to install MongoDB or MySQL and snap7.')
         print('https://www.mongodb.com')
         print('https://sourceforge.net/projects/snap7/files')

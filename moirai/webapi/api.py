@@ -38,7 +38,6 @@ from enum import Enum
 from cheroot.wsgi import Server
 from cheroot.wsgi import PathInfoDispatcher
 from flask import Flask, request, send_file
-from werkzeug.serving import WSGIRequestHandler
 from moirai.database import DatabaseV1
 from moirai.hardware import Hardware
 from moirai import __version__
@@ -169,7 +168,7 @@ class APIv1:
             authorization = request.headers.get('Authorization')
             token = authorization.split(' ')[-1]
             return self.database.verify_token(token)
-        except Exception as e:
+        except Exception:  # noqa: E722 pylint: disable=E722
             return False
 
     def login(self):
@@ -868,7 +867,8 @@ class APIv1:
 
     def restore_database(self):
         """
-        Restore the database collections. It must be a POST request with following body:
+        Restore the database collections. It must be a POST request with
+        following body:
 
         [{
             settings: []
@@ -910,8 +910,8 @@ class APIv1:
 
     def __encode_port(self, port):
         """
-        If the port is a Enum, use its value. If it's a value that can be dumped
-        to JSON, use it, if not, raise an exception.
+        If the port is a Enum, use its value. If it's a value that can be
+        dumped to JSON, use it, if not, raise an exception.
         """
         port_id = port['id']
         if isinstance(port['id'], Enum):

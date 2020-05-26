@@ -22,8 +22,6 @@
 
 import inspect
 import os
-from multiprocessing import Pipe
-from threading import Thread
 
 import ahio
 from moirai.abstract_process_handler import AbstractProcessHandler
@@ -130,5 +128,5 @@ class Hardware(object):
         driver = ahio.new_driver(driver)
         try:
             return driver.available_pins()
-        except:
+        except:  # noqa: E722 pylint: disable=E722
             return []

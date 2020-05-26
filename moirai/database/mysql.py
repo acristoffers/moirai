@@ -102,8 +102,8 @@ class DatabaseV1(object):
     def save_test(self, name, date):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
-        query = 'INSERT INTO `moirai`.`graphs` (`name`, `date`) VALUES (%s, %s)'
-        cur.execute(query, (name, date))
+        q = 'INSERT INTO `moirai`.`graphs` (`name`, `date`) VALUES (%s, %s)'
+        cur.execute(q, (name, date))
         cur.execute('SELECT LAST_INSERT_ID()')
         rowid = list(cur)[0][0]
         cur.close()
@@ -134,11 +134,13 @@ class DatabaseV1(object):
     def get_test_data(self, name, date, skip=0):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
-        query = '''SELECT `sensor`, `time`, `value` FROM `moirai`.`graphs_data`
-                        LEFT JOIN `moirai`.`graphs`
-                        ON `graphs`.`id`=`graphs_data`.`graph`
-                        WHERE `graphs`.`name`=%s AND `graphs`.`date`=%s
-                        ORDER BY `graphs_data`.`time` LIMIT 1000000 OFFSET %s'''
+        query = '''
+            SELECT `sensor`, `time`, `value` FROM `moirai`.`graphs_data`
+                LEFT JOIN `moirai`.`graphs`
+                ON `graphs`.`id`=`graphs_data`.`graph`
+                WHERE `graphs`.`name`=%s AND `graphs`.`date`=%s
+                ORDER BY `graphs_data`.`time` LIMIT 1000000 OFFSET %s
+            '''
         cur.execute(query, (name, date, skip))
         r = [{
             'sensor': sensor,
@@ -152,12 +154,14 @@ class DatabaseV1(object):
     def get_filtered_test_data(self, name, date, sensors):
         cnx = self.__cnx()
         cur = cnx.cursor(True)
-        query = '''SELECT `time`, `value` FROM `moirai`.`graphs_data`
-                        LEFT JOIN `moirai`.`graphs`
-                        ON `graphs`.`id`=`graphs_data`.`graph`
-                        WHERE `graphs`.`name`=%s AND `graphs`.`date`=%s
-                        AND `graphs_data`.`sensor`=%s
-                        ORDER BY `graphs_data`.`time`'''
+        query = '''
+            SELECT `time`, `value` FROM `moirai`.`graphs_data`
+                LEFT JOIN `moirai`.`graphs`
+                ON `graphs`.`id`=`graphs_data`.`graph`
+                WHERE `graphs`.`name`=%s AND `graphs`.`date`=%s
+                AND `graphs_data`.`sensor`=%s
+                ORDER BY `graphs_data`.`time`
+            '''
         result = []
         for sensor in sensors:
             s = {'sensor': sensor, 'time': [], 'values': []}
@@ -211,9 +215,11 @@ class DatabaseV1(object):
         cur = cnx.cursor(True)
         cur.execute('DROP DATABASE IF EXISTS `moirai`')
         self.__init_db()
-        query = '''INSERT INTO `moirai`.`settings` (`key`, `value`)
-                        VALUES (%s, %s) ON DUPLICATE KEY
-                        UPDATE `key` = values(`key`), `value` = values(`value`)'''
+        query = '''
+                INSERT INTO `moirai`.`settings` (`key`, `value`)
+                    VALUES (%s, %s) ON DUPLICATE KEY
+                    UPDATE `key` = values(`key`), `value` = values(`value`)
+                '''
         data = [(s['key'], json.dumps(s['value'])) for s in settings]
         cur.executemany(query, data)
         for graph in graphs:
@@ -278,35 +284,43 @@ class DatabaseV1(object):
         cur.execute(
             'CREATE SCHEMA IF NOT EXISTS `moirai` DEFAULT CHARACTER SET utf8')
         cur.execute('USE moirai')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`settings`
-                       (`id` INT NOT NULL AUTO_INCREMENT,
-                       `value` LONGTEXT NULL,
-                       `key` VARCHAR(100) NOT NULL,
-                       PRIMARY KEY (`id`), UNIQUE INDEX `key_UNIQUE` (`id` ASC),
-                       UNIQUE INDEX `key_idx` (`key` ASC))
-                       ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs`
-                       (`id` INT NOT NULL AUTO_INCREMENT,
-                       `name` VARCHAR(100) NOT NULL, `date` DATETIME NOT NULL,
-                       PRIMARY KEY (`id`),
-                       UNIQUE INDEX `id_UNIQUE` (`id` ASC),
-                       INDEX `date_idx` (`date` ASC),
-                       INDEX `name_idx` (`name` ASC))
-                       ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data`
-                       (`id` INT NOT NULL AUTO_INCREMENT,
-                       `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
-                       `time` FLOAT NOT NULL, `graph` INT NOT NULL,
-                       PRIMARY KEY (`id`),
-                       UNIQUE INDEX `id_UNIQUE` (`id` ASC),
-                       INDEX `graph_idx` (`graph` ASC),
-                       FOREIGN KEY (graph)
-                        REFERENCES graphs(id)
-                        ON DELETE CASCADE)
-                       ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
-        cur.execute('''INSERT INTO moirai.settings (`key`, `value`)
-                              VALUES ("version", "1.0")
-                              ON DUPLICATE KEY UPDATE `value`="1.0"''')
+        cur.execute(
+            '''CREATE TABLE IF NOT EXISTS `moirai`.`settings`
+                (`id` INT NOT NULL AUTO_INCREMENT,
+                `value` LONGTEXT NULL,
+                `key` VARCHAR(100) NOT NULL,
+                PRIMARY KEY (`id`), UNIQUE INDEX `key_UNIQUE` (`id` ASC),
+                UNIQUE INDEX `key_idx` (`key` ASC))
+                ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
+            ''')
+        cur.execute(
+            '''CREATE TABLE IF NOT EXISTS `moirai`.`graphs`
+                (`id` INT NOT NULL AUTO_INCREMENT,
+                `name` VARCHAR(100) NOT NULL, `date` DATETIME NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE INDEX `id_UNIQUE` (`id` ASC),
+                INDEX `date_idx` (`date` ASC),
+                INDEX `name_idx` (`name` ASC))
+                ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
+            ''')
+        cur.execute(
+            '''CREATE TABLE IF NOT EXISTS `moirai`.`graphs_data`
+                (`id` INT NOT NULL AUTO_INCREMENT,
+                `sensor` VARCHAR(100) NOT NULL, `value` DOUBLE NOT NULL,
+                `time` FLOAT NOT NULL, `graph` INT NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE INDEX `id_UNIQUE` (`id` ASC),
+                INDEX `graph_idx` (`graph` ASC),
+                FOREIGN KEY (graph)
+                    REFERENCES graphs(id)
+                    ON DELETE CASCADE)
+                    ENGINE = InnoDB DEFAULT CHARACTER SET = utf8
+            ''')
+        cur.execute(
+            '''INSERT INTO moirai.settings (`key`, `value`)
+                VALUES ("version", "1.0")
+                ON DUPLICATE KEY UPDATE `value`="1.0"
+            ''')
         cur.close()
         cnx.close()
 
@@ -339,8 +353,8 @@ class DatabaseV1(object):
                         ON DELETE CASCADE)
                        ENGINE = InnoDB DEFAULT CHARACTER SET = utf8''')
 
-            query = 'SELECT DISTINCT test, start_time FROM moirai.sensor_values'
-            cur.execute(query)
+            q = 'SELECT DISTINCT test, start_time FROM moirai.sensor_values'
+            cur.execute(q)
             graphs = set(cur)
             query = '''INSERT INTO `moirai`.`graphs` (`name`,`date`)
                               VALUE (%s, %s)'''

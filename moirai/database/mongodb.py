@@ -31,7 +31,7 @@ from pymongo import MongoClient
 
 class DatabaseV1(object):
     """
-    Database class. Connects to MongoDB and abstracts all communication with it.
+    Database class. Connects to MongoDB and abstracts all communication.
     """
 
     def __init__(self):

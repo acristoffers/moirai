@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import ahio
 import datetime
 
 from moirai.database import DatabaseV1
@@ -37,7 +36,7 @@ class SystemResponseTest(object):
             raise Exception('Test not found')
         self.hardware = ConfiguredHardware()
         configuration = self.db.get_setting('hardware_configuration')
-        self.locks = [self.interlock(l) for l in configuration['interlocks']]
+        self.locks = list(map(self.interlock, configuration['interlock']))
         self.off_values = {
             p['alias']: float(p['defaultValue'])
             for p in configuration['ports'] if p['type'] & (8 | 16)

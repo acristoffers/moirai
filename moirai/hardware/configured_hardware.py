@@ -103,11 +103,11 @@ class ConfiguredHardware(object):
                 ptype = ahio.PortType.Analog
             try:
                 self.driver.set_pin_type(p['id'], ptype)
-            except:
+            except:  # noqa: E722 pylint: disable=E722
                 pass
             try:
                 self.driver.set_pin_direction(p['id'], direction)
-            except:
+            except:  # noqa: E722 pylint: disable=E722
                 pass
 
     def _read_calibrated(self, port, formula):

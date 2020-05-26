@@ -39,22 +39,22 @@ class ModelSimulation(object):
     def run(self):
         try:
             self.model = [np.array(x) for x in eval(self.data['model'])]
-        except:
+        except:  # noqa: E722 pylint: disable=E722
             return json.dumps({'error': 'Invalid Model'})
 
         try:
             self.x0 = np.array(eval(self.data['x0']))
-        except:
+        except:  # noqa: E722 pylint: disable=E722
             return json.dumps({'error': 'Invalid x0'})
 
         try:
             self.U = eval(self.data['u'])
-        except:
+        except:  # noqa: E722 pylint: disable=E722
             return json.dumps({'error': 'Invalid U'})
 
         try:
             self.T = eval(self.data['duration'])
-        except:
+        except:  # noqa: E722 pylint: disable=E722
             return json.dumps({'error': 'Invalid Duration'})
 
         try:

@@ -20,6 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+'''
+Decorators used by the moirai server to control logging and exception handling.
+'''
+
 import errno
 import inspect
 import os
@@ -76,8 +80,7 @@ def ignore_eagain(func):
         except socket.error as error:
             if error.errno == errno.EAGAIN:
                 return ret
-            else:
-                raise error
+            raise error
 
     return decorate
 

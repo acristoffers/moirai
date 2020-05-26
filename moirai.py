@@ -21,6 +21,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+"""
+Moirai is the server of the control platform. The frontend is called
+Lachesis, and can be found at https://github.com/acristoffers/Lachesis
+"""
+
 if __name__ == '__main__':
     from moirai import moirai
     moirai.start()
