@@ -178,22 +178,15 @@ def install_macos():
     brew = os.popen('which brew').read()
     if len(brew) > 0:
         print('Using Homebrew to install dependencies.')
-        print('Will now execute: [brew install snap7]')
-        result = os.system('brew install snap7')
-        if result == 0:
-            print('Installation finished.')
-        else:
-            print('Something went wrong. Try installing manually:')
-            print('brew install snap7')
         print('Adding tap mongodb/brew')
         os.system('brew tap mongodb/brew')
-        print('Will now execute: [brew cask install mongodb-community]')
-        result = os.system('brew cask install mongodb-community')
+        print('Will now execute: [brew install snap7 mongodb-community]')
+        result = os.system('brew install snap7 mongodb-community')
         if result == 0:
             print('Installation finished.')
         else:
             print('Something went wrong. Try installing manually:')
-            print('brew cask install mongodb-community')
+            print('brew install snap7 mongodb-community')
     else:
         print('Homebrew not installed, cannot continue alone.')
         print('You need to install MongoDB and snap7.')
