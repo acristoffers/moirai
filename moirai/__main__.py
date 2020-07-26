@@ -27,4 +27,4 @@ Moirai server
 
 from moirai import moirai
 
-moirai.setup()
+moirai.start()
