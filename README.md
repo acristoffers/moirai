@@ -33,6 +33,13 @@ Raspberry Pi) and the Snap7 library. It's designed to work on Windows, macOS
 If using the Snap7 driver on Windows, you may need to compile the driver
 yourself and copy it to /Windows/System32.
 
+On macOS, using Homebrew, you can install with:
+
+```bash
+brew tap acristoffers/repo
+brew install moirai
+```
+
 ## License
 
 Copyright (c) 2016 Álan Crístoffer
