@@ -206,7 +206,10 @@ def install_raspberry(sudo, use_sudo):
     print('Using APT to install dependencies.')
     print(f'Will now execute: [{cmd}]')
     result = os.system(cmd)
-    with open('%s/.moirai.json' % str(Path.home()), 'a+') as file:
+    config_dir = str(Path.home() / '.config')
+    xdg_config = os.environ.get('XDG_CONFIG_HOME', config_dir)
+    config_file = str(Path(xdg_config) / 'moirai' / 'config.json')
+    with open(config_file, 'a+') as file:
         file.seek(0)
         contents = file.read()
         if not contents:

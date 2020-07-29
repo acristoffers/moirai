@@ -24,7 +24,7 @@
 Developer's note:
 This script starts the modules as processes for multithreading purposes.
 Multithreading in python is broken, so separated processes are necessary. Don't
-try to revert to threads. But spawning a new process is made by clonning the
+try to revert to threads. But spawning a new process is made by cloning the
 current one. That means that all variables a stuff will be copied (kinda).
 Also, when a process spawns another, they all are part of the same process
 groupid. When you press CTRL+C, the signal is sent to all processes in the same
@@ -193,12 +193,15 @@ def start():
                 'host': opts.get('host', None)
             }
             opts = {k: v for k, v in opts.items() if v is not None}
-            newcfg = {'database': opts}
-            with open('%s/.moirai.json' % str(Path.home()), 'a+') as f:
+            new_config = {'database': opts}
+            config_dir = str(Path.home() / '.config')
+            xdg_config = os.environ.get('XDG_CONFIG_HOME', config_dir)
+            config_file = str(Path(xdg_config) / 'moirai' / 'config.json')
+            with open(config_file, 'a+') as f:
                 f.seek(0)
                 cfg = json.loads(f.read() or '{}')
-                cfg = {**cfg, **newcfg}
-            with open('%s/.moirai.json' % str(Path.home()), 'w+') as f:
+                cfg = {**cfg, **new_config}
+            with open(config_file, 'w+') as f:
                 f.write(json.dumps(cfg))
             return
 

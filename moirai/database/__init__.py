@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 import json
+import os
 from pathlib import Path
 
 __printed = False
@@ -29,7 +30,10 @@ __printed = False
 def DatabaseV1():
     global __printed
     try:
-        with open('%s/.moirai.json' % str(Path.home())) as f:
+        config_dir = str(Path.home() / '.config')
+        xdg_config = os.environ.get('XDG_CONFIG_HOME', config_dir)
+        config_file = str(Path(xdg_config) / 'moirai' / 'config.json')
+        with open(config_file) as f:
             cfgstr = f.read()
             if cfgstr:
                 cfg = json.loads(cfgstr)
