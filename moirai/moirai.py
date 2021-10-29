@@ -60,11 +60,11 @@ from moirai.database import DatabaseV1
 from moirai.installer import install
 
 PROCESSES = {}
-PS = ['webapi', 'hardware']
-PROCESS_TYPE = 'main'
+PS = ["webapi", "hardware"]
+PROCESS_TYPE = "main"
 WEBSOCKET = None
 
-sys.path.append(os.path.join(os.path.splitdrive(sys.executable)[0], 'opt'))
+sys.path.append(os.path.join(os.path.splitdrive(sys.executable)[0], "opt"))
 
 
 def signal_handler(*_):
@@ -74,14 +74,14 @@ def signal_handler(*_):
     global PS
     # Only respond to SIGINT if we're on parent process.
     # Child processes will be asked to quit.
-    if PROCESS_TYPE == 'main':
-        print('')
+    if PROCESS_TYPE == "main":
+        print("")
         # Ask each child process to quit
+        print("Shutting down Moirai...")
         for key in reversed(PS):
             process, pipe = PROCESSES[key]
-            pipe.send(('quit', None))
+            pipe.send(("quit", None))
             process.join()
-        print('Shutting down Moirai...')
         sys.exit(0)
 
 
@@ -90,7 +90,7 @@ def spawn_process(name):
     Spawns a new processes for module named `name`
     """
     pipe_main, pipe_process = Pipe()
-    process = Process(target=main, args=(pipe_process, name))
+    process = Process(target=main, args=(pipe_process, name, sys.argv))
     PROCESSES[name] = (process, pipe_main)
     process.start()
 
@@ -101,10 +101,10 @@ def init(name):
     """
     global PROCESSES
     pipe = PROCESSES[name][1]
-    pipe.send(('init', None))
+    pipe.send(("init", None))
 
 
-def main(pipe, name):
+def main(pipe, name, args):
     """
     This is the main function of child processes. It will flag this process
     as child and start the event loop in the correct package. Setting
@@ -113,12 +113,12 @@ def main(pipe, name):
     """
     global PROCESSES, PROCESS_TYPE
     PROCESSES = None
-    PROCESS_TYPE = 'child'
-    if name == 'hardware':
+    PROCESS_TYPE = "child"
+    if name == "hardware":
         import moirai.hardware as pkg
-    elif name == 'webapi':
+    elif name == "webapi":
         import moirai.webapi as pkg
-    pkg.main(pipe)
+    pkg.main(pipe, args)
 
 
 def query_alive(name):
@@ -129,9 +129,9 @@ def query_alive(name):
     pipe = PROCESSES[name][1]
     if pipe.poll():
         pipe.recv()
-    pipe.send(('alive', None))
+    pipe.send(("alive", None))
     cmd, __ = pipe.recv()
-    return cmd == 'alive'
+    return cmd == "alive"
 
 
 def start():
@@ -140,77 +140,81 @@ def start():
     """
     global PROCESSES, PS
 
-    if '--version' in sys.argv:
+    if "--version" in sys.argv:
         print(__version__)
         return
 
-    if '--help' in sys.argv:
-        print(fr'Moirai version {__version__}')
-        print(r'Options:')
-        print('\t--version Prints version')
-        print('\t--install Tries to install dependencies.')
+    if "--help" in sys.argv:
+        print(fr"Moirai {__version__}")
+        print(r"Options:")
+        print("\t--version Prints version.")
+        print("\t--install Tries to install dependencies.")
         print(
-            '\t--sudo Uses sudo to install packages. '
-            'You still need write access to /opt.'
+            "\t--sudo Uses sudo to install packages. "
+            "You still need write access to /opt."
         )
-        print('\t--set-password=pwd Sets the password to pwd')
+        print("\t--set-password=pwd Sets the password to pwd.")
+        print("\t--port=port Port for the web server.")
         print(
-            '\t--db=[mysql|mongodb] [--username=root] [--password=1234] '
-            '[--host=127.0.0.1] Saves the dabatase configuration.'
+            "\t--db=[mysql|mongodb] [--username=root] [--password=1234] "
+            "[--host=127.0.0.1] Saves the dabatase configuration."
         )
-        print('')
-        print('\tThe installer does not behave well with PyENV')
+        print("")
+        print("\tThe installer does not behave well with PyENV.")
         return
 
-    if '--install' in sys.argv:
-        install('--sudo' in sys.argv)
+    if "--install" in sys.argv:
+        install("--sudo" in sys.argv)
         return
 
     for arg in sys.argv:
-        if arg.startswith('--set-password='):
-            pswd = arg.split('=')[-1]
+        if arg.startswith("--set-password="):
+            pswd = arg.split("=")[-1]
             if not pswd:
-                print('Password is mandatory.')
+                print("Password is mandatory.")
                 return
             else:
                 hasher = hashlib.sha512()
-                hasher.update(bytes(pswd, 'utf-8'))
+                hasher.update(bytes(pswd, "utf-8"))
                 pswd = hasher.hexdigest()
             print("Setting password to %s" % pswd)
             database = DatabaseV1()
-            database.set_setting('password', pswd)
+            database.set_setting("password", pswd)
             return
-        elif arg.startswith('--db='):
+        elif arg.startswith("--db="):
             opts = {
                 k: v
-                for k, v in (arg.replace('--', '').split('=')
-                             for arg in sys.argv if arg.startswith('--'))
+                for k, v in (
+                    arg.replace("--", "").split("=")
+                    for arg in sys.argv
+                    if arg.startswith("--")
+                )
             }
             opts = {
-                'adapter': opts['db'],
-                'username': opts.get('username', None),
-                'password': opts.get('password', None),
-                'host': opts.get('host', None)
+                "adapter": opts["db"],
+                "username": opts.get("username", None),
+                "password": opts.get("password", None),
+                "host": opts.get("host", None),
             }
             opts = {k: v for k, v in opts.items() if v is not None}
-            new_config = {'database': opts}
-            config_dir = str(Path.home() / '.config')
-            xdg_config = os.environ.get('XDG_CONFIG_HOME', config_dir)
-            config_file = str(Path(xdg_config) / 'moirai' / 'config.json')
-            with open(config_file, 'a+') as f:
+            new_config = {"database": opts}
+            config_dir = str(Path.home() / ".config")
+            xdg_config = os.environ.get("XDG_CONFIG_HOME", config_dir)
+            config_file = str(Path(xdg_config) / "moirai" / "config.json")
+            with open(config_file, "a+") as f:
                 f.seek(0)
-                cfg = json.loads(f.read() or '{}')
+                cfg = json.loads(f.read() or "{}")
                 cfg = {**cfg, **new_config}
-            with open(config_file, 'w+') as f:
+            with open(config_file, "w+") as f:
                 f.write(json.dumps(cfg))
             return
 
     # Catches SIGINT (CTRL+C)
     signal.signal(signal.SIGINT, signal_handler)
-    print('Starting Moirai...')
-    print('To quit press CTRL+C (^C on Macs)')
-    print('Logging to %s' % decorators.log_file_path())
-    print('Using ahio version %s' % ahio.__version__)
+    print("Starting Moirai...")
+    print("To quit press CTRL+C (^C on Macs)")
+    print("Logging to %s" % decorators.log_file_path())
+    print("Using ahio version %s" % ahio.__version__)
 
     # Creates a processs for each module of moirai
     for process in PS:
@@ -232,15 +236,15 @@ def start():
             if pipe.poll():
                 last_message = time.time()
                 command, args = pipe.recv()
-                if command == 'quit':
+                if command == "quit":
                     signal_handler(None, None)
-                elif command == 'connect':
+                elif command == "connect":
                     pkg_from, pkg_to = args
                     pipe_to = PROCESSES[pkg_to][1]
                     process1, process2 = Pipe()
-                    pipe_to.send(('connect', (pkg_from, process1)))
+                    pipe_to.send(("connect", (pkg_from, process1)))
                     status, __ = pipe_to.recv()
-                    if status == 'ok':
-                        pipe.send(('ok', process2))
+                    if status == "ok":
+                        pipe.send(("ok", process2))
                     else:
-                        pipe.send(('error', None))
+                        pipe.send(("error", None))

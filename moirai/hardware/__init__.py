@@ -31,7 +31,7 @@ from moirai.hardware.free import Free
 from moirai.hardware.pid import PID
 
 
-def main(pipe):
+def main(pipe, _):
     """
     Entry point for this process.
     """
@@ -49,7 +49,7 @@ class ProcessHandler(AbstractProcessHandler):
         self.cmd_processor = CommandProcessor(self)
         self.pid = PID.instance()
         self.free = Free.instance()
-        super().__init__('Hardware', pipe)
+        super().__init__("Hardware", pipe)
 
     def quit(self):
         pass
@@ -73,9 +73,9 @@ def arguments_of(func):
 
     def v(name):
         if ps[name].default == inspect.Parameter.empty:
-            return {'name': name}
+            return {"name": name}
         else:
-            return {'name': name, 'default_value': ps[name].default}
+            return {"name": name, "default_value": ps[name].default}
 
     ps = inspect.signature(func).parameters
     return [v(name) for name in ps]
@@ -88,7 +88,7 @@ class Hardware(object):
         """
         ahio.clear_path()
         try:
-            paths = os.environ['AHIO_PATH'].split(os.pathsep)
+            paths = os.environ["AHIO_PATH"].split(os.pathsep)
             for path in paths:
                 if os.path.exists(path):
                     ahio.add_path(os.path.expanduser(path))
@@ -103,7 +103,7 @@ class Hardware(object):
         if driver_name not in ahio.list_available_drivers():
             return False
         with ahio.new_driver(driver_name) as driver:
-            return hasattr(driver, 'setup')
+            return hasattr(driver, "setup")
 
     def driver_setup_arguments(self, driver):
         """
@@ -117,7 +117,7 @@ class Hardware(object):
         if driver not in ahio.list_available_drivers():
             return None
         with ahio.new_driver(driver) as driver:
-            if hasattr(driver, 'setup'):
+            if hasattr(driver, "setup"):
                 return arguments_of(driver.setup)
             else:
                 return []

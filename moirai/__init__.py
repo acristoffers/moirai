@@ -20,15 +20,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-'''
+"""
 Moirai server
-'''
+"""
 
-__author__ = 'Álan Crístoffer'
-__copyright__ = 'Copyright 2016, Álan Crístoffer'
-__credits__ = ['Álan Crístoffer']
-__license__ = 'MIT'
-__version__ = '1.3.18'
-__maintainer__ = 'Álan Crístoffer'
-__email__ = 'acristoffers@gmail.com'
-__status__ = 'Production'
+__author__ = "Álan Crístoffer"
+__copyright__ = "Copyright 2016, Álan Crístoffer"
+__credits__ = ["Álan Crístoffer"]
+__license__ = "MIT"
+__version__ = "1.3.19"
+__maintainer__ = "Álan Crístoffer"
+__email__ = "acristoffers@gmail.com"
+__status__ = "Production"

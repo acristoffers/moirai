@@ -30,6 +30,7 @@ import logging
 import os.path
 import tempfile
 import scipy.io as sio
+import sys
 from multiprocessing import Pipe
 
 from bson import json_util
@@ -48,12 +49,13 @@ class APIv1:
     Starts a WebServer for the API endpoint.
     """
 
-    def __init__(self, processHandler):
+    def __init__(self, processHandler, args):
         self.app = Flask(__name__)
         self.database = DatabaseV1()
         self.hardware = Hardware()
         self.ph = processHandler
-        logging.getLogger('werkzeug').setLevel(logging.ERROR)
+        self.args = args
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
     def run(self):
         """
@@ -62,111 +64,113 @@ class APIv1:
 
         @self.app.after_request
         def add_header(response):
-            response.headers['Cache-Control'] = 'no-store'
+            response.headers["Cache-Control"] = "no-store"
             return response
 
-        self.app.add_url_rule('/', view_func=lambda: 'Moirai Control System\n')
-        self.app.add_url_rule('/login', view_func=self.login, methods=['POST'])
+        self.app.add_url_rule("/", view_func=lambda: "Moirai Control System\n")
+        self.app.add_url_rule("/login", view_func=self.login, methods=["POST"])
+        self.app.add_url_rule("/version", view_func=self.version, methods=["GET"])
         self.app.add_url_rule(
-            '/version', view_func=self.version, methods=['GET'])
+            "/set-password", view_func=self.set_password, methods=["POST"]
+        )
+        self.app.add_url_rule("/last_error", view_func=self.last_error, methods=["GET"])
         self.app.add_url_rule(
-            '/set-password', view_func=self.set_password, methods=['POST'])
+            "/hardware/drivers", view_func=self.hardware_drivers, methods=["GET"]
+        )
         self.app.add_url_rule(
-            '/last_error', view_func=self.last_error, methods=['GET'])
-        self.app.add_url_rule(
-            '/hardware/drivers',
-            view_func=self.hardware_drivers,
-            methods=['GET'])
-        self.app.add_url_rule(
-            '/hardware/configuration',
+            "/hardware/configuration",
             view_func=self.hardware_set_configuration,
-            methods=['POST'])
+            methods=["POST"],
+        )
         self.app.add_url_rule(
-            '/hardware/configuration',
+            "/hardware/configuration",
             view_func=self.hardware_get_configuration,
-            methods=['GET'])
+            methods=["GET"],
+        )
         self.app.add_url_rule(
-            '/system_response/tests',
+            "/system_response/tests",
             view_func=self.system_response_get_tests,
-            methods=['GET'])
+            methods=["GET"],
+        )
         self.app.add_url_rule(
-            '/system_response/tests',
+            "/system_response/tests",
             view_func=self.system_response_set_tests,
-            methods=['POST'])
+            methods=["POST"],
+        )
         self.app.add_url_rule(
-            '/system_response/test/run',
+            "/system_response/test/run",
             view_func=self.system_response_run,
-            methods=['POST'])
+            methods=["POST"],
+        )
         self.app.add_url_rule(
-            '/system_response/test/stop',
+            "/system_response/test/stop",
             view_func=self.system_response_stop,
-            methods=['GET'])
+            methods=["GET"],
+        )
         self.app.add_url_rule(
-            '/live_graph/tests',
-            view_func=self.live_graph_list_tests,
-            methods=['GET'])
+            "/live_graph/tests", view_func=self.live_graph_list_tests, methods=["GET"]
+        )
         self.app.add_url_rule(
-            '/live_graph/test',
-            view_func=self.live_graph_get_test,
-            methods=['POST'])
+            "/live_graph/test", view_func=self.live_graph_get_test, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/live_graph/test/remove',
+            "/live_graph/test/remove",
             view_func=self.live_graph_remove_test,
-            methods=['POST'])
+            methods=["POST"],
+        )
         self.app.add_url_rule(
-            '/live_graph/test/export',
+            "/live_graph/test/export",
             view_func=self.live_graph_export_mat,
-            methods=['POST'])
+            methods=["POST"],
+        )
         self.app.add_url_rule(
-            '/controllers', view_func=self.controller_set, methods=['POST'])
+            "/controllers", view_func=self.controller_set, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/controllers', view_func=self.controller_get, methods=['GET'])
+            "/controllers", view_func=self.controller_get, methods=["GET"]
+        )
         self.app.add_url_rule(
-            '/controllers/run',
-            view_func=self.controller_run,
-            methods=['POST'])
+            "/controllers/run", view_func=self.controller_run, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/controllers/export',
-            view_func=self.controller_export,
-            methods=['POST'])
+            "/controllers/export", view_func=self.controller_export, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/controllers/import',
-            view_func=self.controller_import,
-            methods=['POST'])
+            "/controllers/import", view_func=self.controller_import, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/controllers/stop',
-            view_func=self.controller_stop,
-            methods=['GET'])
+            "/controllers/stop", view_func=self.controller_stop, methods=["GET"]
+        )
+        self.app.add_url_rule("/db/dump", view_func=self.dump_database, methods=["GET"])
         self.app.add_url_rule(
-            '/db/dump', view_func=self.dump_database, methods=['GET'])
+            "/db/restore", view_func=self.restore_database, methods=["POST"]
+        )
         self.app.add_url_rule(
-            '/db/restore', view_func=self.restore_database, methods=['POST'])
-        self.app.add_url_rule(
-            '/simulation/run',
-            view_func=self.model_simulation_run,
-            methods=['POST'])
-        self.app.add_url_rule(
-            '/pid/run', view_func=self.pid_run, methods=['POST'])
-        self.app.add_url_rule(
-            '/free/run', view_func=self.free_run, methods=['POST'])
+            "/simulation/run", view_func=self.model_simulation_run, methods=["POST"]
+        )
+        self.app.add_url_rule("/pid/run", view_func=self.pid_run, methods=["POST"])
+        self.app.add_url_rule("/free/run", view_func=self.free_run, methods=["POST"])
 
-        d = PathInfoDispatcher({'/': self.app})
-        self.server = Server(('0.0.0.0', 5000), d)
+        d = PathInfoDispatcher({"/": self.app})
+        port = [x for x in self.args if x.startswith("--port")] + ["--port=5000"]
+        port = int(port[0].split("=")[1])
+        print(f"Starting server at 0.0.0.0:{port}")
+        self.server = Server(("0.0.0.0", port), d)
         self.server.start()
 
     def stop(self):
         self.server.stop()
 
     def version(self):
-        return json.dumps({'version': __version__})
+        return json.dumps({"version": __version__})
 
     def verify_token(self):
         """
         Verifies the token sent as a HTTP Authorization header.
         """
         try:
-            authorization = request.headers.get('Authorization')
-            token = authorization.split(' ')[-1]
+            authorization = request.headers.get("Authorization")
+            token = authorization.split(" ")[-1]
             return self.database.verify_token(token)
         except Exception:  # noqa: E722 pylint: disable=E722
             return False
@@ -191,14 +195,14 @@ class APIv1:
 
             {}
         """
-        password = request.json.get('password', '')
+        password = request.json.get("password", "")
         hasher = hashlib.sha512()
-        hasher.update(bytes(password, 'utf-8'))
+        hasher.update(bytes(password, "utf-8"))
         password = hasher.hexdigest()
-        saved_password = self.database.get_setting('password')
+        saved_password = self.database.get_setting("password")
         if saved_password == password:
-            return json.dumps({'token': self.database.generate_token()})
-        return '{}', 403
+            return json.dumps({"token": self.database.generate_token()})
+        return "{}", 403
 
     def set_password(self):
         """
@@ -218,13 +222,13 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
-        password = request.json.get('password', '')
+            return "{}", 403
+        password = request.json.get("password", "")
         hasher = hashlib.sha512()
-        hasher.update(bytes(password, 'utf-8'))
+        hasher.update(bytes(password, "utf-8"))
         password = hasher.hexdigest()
-        self.database.set_setting('password', password)
-        return '{}'
+        self.database.set_setting("password", password)
+        return "{}"
 
     def last_error(self):
         """
@@ -236,9 +240,9 @@ class APIv1:
             }
         """
         if not self.verify_token():
-            return '{}', 403
-        error = self.database.get_setting('test_error')
-        return json.dumps({'message': error})
+            return "{}", 403
+        error = self.database.get_setting("test_error")
+        return json.dumps({"message": error})
 
     def hardware_drivers(self):
         """
@@ -275,18 +279,17 @@ class APIv1:
             }
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
         drivers = self.hardware.list_drivers()
-        drivers = [{
-            'name':
-            driver,
-            'has_setup':
-            self.hardware.driver_has_setup(driver),
-            'setup_arguments':
-            self.hardware.driver_setup_arguments(driver),
-            'ports':
-            self.__ports_for_driver(driver)
-        } for driver in drivers]
+        drivers = [
+            {
+                "name": driver,
+                "has_setup": self.hardware.driver_has_setup(driver),
+                "setup_arguments": self.hardware.driver_setup_arguments(driver),
+                "ports": self.__ports_for_driver(driver),
+            }
+            for driver in drivers
+        ]
         return json.dumps(drivers)
 
     def hardware_set_configuration(self):
@@ -330,11 +333,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         configuration = request.json
-        self.database.set_setting('hardware_configuration', configuration)
-        return '{}'
+        self.database.set_setting("hardware_configuration", configuration)
+        return "{}"
 
     def hardware_get_configuration(self):
         """
@@ -378,9 +381,9 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        config = self.database.get_setting('hardware_configuration') or {}
+        config = self.database.get_setting("hardware_configuration") or {}
         return json.dumps(config)
 
     def system_response_get_tests(self):
@@ -416,9 +419,9 @@ class APIv1:
             []
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        tests = self.database.get_setting('system_response_tests') or []
+        tests = self.database.get_setting("system_response_tests") or []
         return json.dumps(tests)
 
     def system_response_set_tests(self):
@@ -453,11 +456,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         tests = request.json
-        self.database.set_setting('system_response_tests', tests)
-        return '{}'
+        self.database.set_setting("system_response_tests", tests)
+        return "{}"
 
     def system_response_run(self):
         """
@@ -477,11 +480,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        test = request.json['test']
+        test = request.json["test"]
         self.ph.send_command("hardware", "run_test", test)
-        return '{}'
+        return "{}"
 
     def system_response_stop(self):
         """
@@ -497,11 +500,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        self.database.set_setting('current_test', None)
+        self.database.set_setting("current_test", None)
 
-        return '{}'
+        return "{}"
 
     def live_graph_list_tests(self):
         """
@@ -523,21 +526,21 @@ class APIv1:
             []
         """
         if not self.verify_token():
-            return '{}', 403
-        running_test = self.database.get_setting('current_test')
+            return "{}", 403
+        running_test = self.database.get_setting("current_test")
         tests = self.database.list_test_data()
         if len(tests) == 0:
-            return '[]'
+            return "[]"
 
-        last_date = max([test['date'] for test in tests])
-        tests = [{
-            'name':
-            t['name'],
-            'date':
-            t['date'].isoformat(),
-            'running':
-            t['name'] == running_test and t['date'] == last_date
-        } for t in tests]
+        last_date = max([test["date"] for test in tests])
+        tests = [
+            {
+                "name": t["name"],
+                "date": t["date"].isoformat(),
+                "running": t["name"] == running_test and t["date"] == last_date,
+            }
+            for t in tests
+        ]
 
         return json.dumps(tests)
 
@@ -567,11 +570,11 @@ class APIv1:
             []
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        test = request.json['test']
-        start_time = dateutil.parser.parse(request.json['start_time'])
-        skip = request.json.get('skip', 0)
+        test = request.json["test"]
+        start_time = dateutil.parser.parse(request.json["start_time"])
+        skip = request.json.get("skip", 0)
 
         points = self.database.get_test_data(test, start_time, skip)
 
@@ -598,23 +601,20 @@ class APIv1:
             []
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         ts = request.json
         if isinstance(ts, list):
-            ts = [{
-                'name': t['test'],
-                'date': dateutil.parser.parse(t['start_time'])
-            } for t in ts]
+            ts = [
+                {"name": t["test"], "date": dateutil.parser.parse(t["start_time"])}
+                for t in ts
+            ]
         else:
-            ts = {
-                'name': ts['test'],
-                'date': dateutil.parser.parse(ts['start_time'])
-            }
+            ts = {"name": ts["test"], "date": dateutil.parser.parse(ts["start_time"])}
 
         self.database.remove_test(ts)
 
-        return '[]'
+        return "[]"
 
     def live_graph_export_mat(self):
         """
@@ -636,26 +636,26 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        test = request.json['test']
-        start_time = dateutil.parser.parse(request.json['start_time'])
-        v = request.json['variables']
+        test = request.json["test"]
+        start_time = dateutil.parser.parse(request.json["start_time"])
+        v = request.json["variables"]
 
         ks = list(v.keys())
         ds = self.database.get_filtered_test_data(test, start_time, ks)
-        ts = ds[0]['time']
-        ds = {v.get(d['sensor'], d['sensor']): d['values'] for d in ds}
-        ds['t'] = ts
+        ts = ds[0]["time"]
+        ds = {v.get(d["sensor"], d["sensor"]): d["values"] for d in ds}
+        ds["t"] = ts
 
         directory = tempfile.gettempdir()
-        file_path = os.path.join(directory, 'test.mat')
+        file_path = os.path.join(directory, "test.mat")
 
         sio.savemat(file_path, ds)
 
-        f = open(file_path, 'rb')
+        f = open(file_path, "rb")
 
-        return send_file(f, as_attachment=True, attachment_filename='data.mat')
+        return send_file(f, as_attachment=True, attachment_filename="data.mat")
 
     def controller_set(self):
         """
@@ -682,11 +682,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         cs = request.json
-        self.database.set_setting('controllers', cs)
-        return '{}'
+        self.database.set_setting("controllers", cs)
+        return "{}"
 
     def controller_get(self):
         """
@@ -711,9 +711,9 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        cs = self.database.get_setting('controllers') or []
+        cs = self.database.get_setting("controllers") or []
         return json.dumps(cs)
 
     def controller_run(self):
@@ -734,11 +734,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        controller = request.json['controller']
+        controller = request.json["controller"]
         self.ph.send_command("hardware", "run_controller", controller)
-        return '{}'
+        return "{}"
 
     def controller_export(self):
         """
@@ -758,24 +758,25 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        controllers = request.json['controllers']
-        cs = self.database.get_setting('controllers') or []
-        cs = [c for c in cs if c['id'] in controllers]
+        controllers = request.json["controllers"]
+        cs = self.database.get_setting("controllers") or []
+        cs = [c for c in cs if c["id"] in controllers]
         for c in cs:
-            c.pop('id', None)
+            c.pop("id", None)
         jsondata = json.dumps(cs)
 
         zbuffer = io.BytesIO()
         with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
-            zip_file.writestr('dump', jsondata)
+            zip_file.writestr("dump", jsondata)
         zbuffer.seek(0, 0)
         return send_file(
             zbuffer,
             as_attachment=True,
-            attachment_filename='dump.zip',
-            mimetype="application/octet-stream")
+            attachment_filename="dump.zip",
+            mimetype="application/octet-stream",
+        )
 
     def controller_import(self):
         """
@@ -793,22 +794,22 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
         file = tempfile.TemporaryFile()
-        file.write(request.files['file'].read())
+        file.write(request.files["file"].read())
         file.seek(0)
         with zipfile.ZipFile(file, "r", zipfile.ZIP_LZMA) as zip_file:
-            jsondata = zip_file.read('dump')
+            jsondata = zip_file.read("dump")
             ns = json.loads(jsondata, object_hook=json_util.object_hook)
             del jsondata
-            cs = self.database.get_setting('controllers') or []
-            lid = max([c['id'] for c in cs] or [0])
+            cs = self.database.get_setting("controllers") or []
+            lid = max([c["id"] for c in cs] or [0])
             for n in ns:
                 lid += 1
-                n['id'] = lid
+                n["id"] = lid
                 cs.append(n)
-            self.database.set_setting('controllers', cs)
-        return '{}'
+            self.database.set_setting("controllers", cs)
+        return "{}"
 
     def controller_stop(self):
         """
@@ -824,11 +825,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
-        self.database.set_setting('current_test', None)
+        self.database.set_setting("current_test", None)
 
-        return '{}'
+        return "{}"
 
     def dump_database(self):
         """
@@ -847,23 +848,24 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         settings, graphs = self.database.dump_database()
-        data = {'settings': settings, 'graphs': graphs}
+        data = {"settings": settings, "graphs": graphs}
         jsondata = json.dumps(data, default=json_util.default)
 
         del data, settings, graphs  # release memory
 
         zbuffer = io.BytesIO()
         with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
-            zip_file.writestr('dump', jsondata)
+            zip_file.writestr("dump", jsondata)
         zbuffer.seek(0, 0)
         return send_file(
             zbuffer,
             as_attachment=True,
-            attachment_filename='dump.zip',
-            mimetype="application/octet-stream")
+            attachment_filename="dump.zip",
+            mimetype="application/octet-stream",
+        )
 
     def restore_database(self):
         """
@@ -885,20 +887,20 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
         db = self.database
         file = tempfile.TemporaryFile()
-        file.write(request.files['file'].read())
+        file.write(request.files["file"].read())
         file.seek(0)
         with zipfile.ZipFile(file, "r", zipfile.ZIP_LZMA) as zip_file:
-            jsondata = zip_file.read('dump')
+            jsondata = zip_file.read("dump")
             d = json.loads(jsondata, object_hook=json_util.object_hook)
             del jsondata
-            if 'test_sensor_values' in d:
-                db.restore_database_v1(d['settings'], d['test_sensor_values'])
+            if "test_sensor_values" in d:
+                db.restore_database_v1(d["settings"], d["test_sensor_values"])
             else:
-                db.restore_database_v2(d['settings'], d['graphs'])
-        return '{}'
+                db.restore_database_v2(d["settings"], d["graphs"])
+        return "{}"
 
     def __ports_for_driver(self, driver):
         """
@@ -913,15 +915,15 @@ class APIv1:
         If the port is a Enum, use its value. If it's a value that can be
         dumped to JSON, use it, if not, raise an exception.
         """
-        port_id = port['id']
-        if isinstance(port['id'], Enum):
-            port_id = port['id'].value
+        port_id = port["id"]
+        if isinstance(port["id"], Enum):
+            port_id = port["id"].value
         else:
             try:
-                port_id = json.dumps(port['id'])
+                port_id = json.dumps(port["id"])
             except BaseException:
                 pass
-        port['id'] = port_id
+        port["id"] = port_id
         return port
 
     def __decode_port(self, driver, port):
@@ -935,8 +937,8 @@ class APIv1:
         ps = driver.available_pins()
         if len(ps) > 0:
             p = ps[0]
-            if isinstance(p['id'], Enum):
-                port['id'] = p['id'].__class__(port['id'])
+            if isinstance(p["id"], Enum):
+                port["id"] = p["id"].__class__(port["id"])
         return port
 
     def model_simulation_run(self):
@@ -959,7 +961,7 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         args = request.json
         p1, p2 = Pipe()
@@ -996,11 +998,11 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         args = request.json
         self.ph.send_command("hardware", "run_pid", args)
-        return '{}'
+        return "{}"
 
     def free_run(self):
         """
@@ -1024,8 +1026,8 @@ class APIv1:
             {}
         """
         if not self.verify_token():
-            return '{}', 403
+            return "{}", 403
 
         args = request.json
         self.ph.send_command("hardware", "run_free", args)
-        return '{}'
+        return "{}"

@@ -28,11 +28,11 @@ from moirai.webapi.api import APIv1
 from moirai.webapi.cmd_processor import CommandProcessor
 
 
-def main(pipe):
+def main(pipe, args):
     """
     Entry point for this process.
     """
-    handler = ProcessHandler(pipe)
+    handler = ProcessHandler(pipe, args)
     handler.run()
 
 
@@ -42,11 +42,11 @@ class ProcessHandler(AbstractProcessHandler):
     Manages this processes' lifecycle and handles IPC.
     """
 
-    def __init__(self, pipe):
+    def __init__(self, pipe, args):
         self.cmd_processor = CommandProcessor(self)
-        super().__init__('WebAPI', pipe)
-        self.api = APIv1(self)
-        self.thread = Thread(target=self.api.run, name='WebAPIThread')
+        super().__init__("WebAPI", pipe)
+        self.api = APIv1(self, args)
+        self.thread = Thread(target=self.api.run, name="WebAPIThread")
 
     def quit(self):
         self.api.stop()
