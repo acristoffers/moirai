@@ -655,7 +655,13 @@ class APIv1:
 
         f = open(file_path, "rb")
 
-        return send_file(f, as_attachment=True, attachment_filename="data.mat")
+        return send_file(
+            f,
+            as_attachment=True,
+            download_name="data.mat",
+            mimetype="application/octet-stream",
+        )
+
 
     def controller_set(self):
         """
@@ -771,10 +777,11 @@ class APIv1:
         with zipfile.ZipFile(zbuffer, "a", zipfile.ZIP_LZMA) as zip_file:
             zip_file.writestr("dump", jsondata)
         zbuffer.seek(0, 0)
+
         return send_file(
             zbuffer,
             as_attachment=True,
-            attachment_filename="dump.zip",
+            download_name="dump.zip",
             mimetype="application/octet-stream",
         )
 
@@ -863,7 +870,7 @@ class APIv1:
         return send_file(
             zbuffer,
             as_attachment=True,
-            attachment_filename="dump.zip",
+            download_name="dump.zip",
             mimetype="application/octet-stream",
         )
 
