@@ -13,7 +13,7 @@ moirai = 'moirai.moirai:start'
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
-ahio = "^1.0.27"
+ahio = "^1.0.28"
 cheroot = "^8.5.2"
 python-dateutil = "^2.8.1"
 pymongo = "^3.11.4"
