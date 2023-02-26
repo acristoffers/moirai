@@ -38,31 +38,31 @@ class ModelSimulation(object):
 
     def run(self):
         try:
-            self.model = [np.array(x) for x in eval(self.data['model'])]
+            self.model = [np.array(x) for x in eval(self.data["model"])]
         except:  # noqa: E722 pylint: disable=E722
-            return json.dumps({'error': 'Invalid Model'})
+            return json.dumps({"error": "Invalid Model"})
 
         try:
-            self.x0 = np.array(eval(self.data['x0']))
+            self.x0 = np.array(eval(self.data["x0"]))
         except:  # noqa: E722 pylint: disable=E722
-            return json.dumps({'error': 'Invalid x0'})
+            return json.dumps({"error": "Invalid x0"})
 
         try:
-            self.U = eval(self.data['u'])
+            self.U = eval(self.data["u"])
         except:  # noqa: E722 pylint: disable=E722
-            return json.dumps({'error': 'Invalid U'})
+            return json.dumps({"error": "Invalid U"})
 
         try:
-            self.T = eval(self.data['duration'])
+            self.T = eval(self.data["duration"])
         except:  # noqa: E722 pylint: disable=E722
-            return json.dumps({'error': 'Invalid Duration'})
+            return json.dumps({"error": "Invalid Duration"})
 
         try:
             tf = len(self.model) < 4
 
             if len(self.model) % 2 == 1:
                 *self.model, dt = self.model
-                dt = np.asscalar(dt)
+                dt = float(dt)
                 G = scipy.signal.dlti(*self.model, dt=dt)
                 G = scipy.signal.StateSpace(G)
                 self.model = G.A, G.B, G.C, G.D
@@ -71,7 +71,7 @@ class ModelSimulation(object):
                 G = scipy.signal.StateSpace(G)
                 self.model = G.A, G.B, G.C, G.D
                 vals = scipy.linalg.eigvals(G.A)
-                dt = max(0.1, float('%.1f' % (max(abs(np.real(vals))) / 5)))
+                dt = max(0.1, float("%.1f" % (max(abs(np.real(vals))) / 5)))
                 if type(self.U) == list:
                     dt = self.T / len(self.U)
                 *self.model, _ = scipy.signal.cont2discrete(self.model, dt)
@@ -84,50 +84,50 @@ class ModelSimulation(object):
 
             A, B, C, D = self.model
             x = self.x0 if not tf else np.zeros((A.shape[0], 1))
-            outputs = {'u': self.U, 't': self.T}
+            outputs = {"u": self.U, "t": self.T}
 
             if C.shape[0] == 1:
-                outputs['y'] = []
+                outputs["y"] = []
             else:
                 for i in range(C.shape[0]):
-                    outputs['y%d' % (i + 1)] = []
+                    outputs["y%d" % (i + 1)] = []
 
             if not tf:
                 for i in range(len(x.flatten())):
-                    outputs['x%d' % (i + 1)] = []
+                    outputs["x%d" % (i + 1)] = []
 
             db = DatabaseV1()
             start_time = datetime.datetime.utcnow()
-            graph_id = db.save_test('Simulation', start_time)
+            graph_id = db.save_test("Simulation", start_time)
 
             for k in self.T:
                 x = A @ x + B * self.U[k]
                 y = C @ x + D * self.U[k]
                 t = k * dt
 
-                db.save_test_sensor_value(graph_id, 'u', self.U[k], t)
+                db.save_test_sensor_value(graph_id, "u", float(self.U[k]), t)
 
                 if not tf:
                     for i in range(len(x.flatten())):
                         k = i + 1
-                        outputs['x%d' % k].append(np.asscalar(x.flatten()[i]))
-                        db.save_test_sensor_value(graph_id, 'x%d' % k,
-                                                  np.asscalar(x.flatten()[i]),
-                                                  t)
+                        outputs["x%d" % k].append(x.flatten()[i].item())
+                        db.save_test_sensor_value(
+                            graph_id, "x%d" % k, float(x.flatten()[i].item()), t
+                        )
 
                 if C.shape[0] > 1:
                     for i in range(C.shape[0]):
                         k = i + 1
-                        outputs['y%d' % k].append(np.asscalar(y.flatten()[i]))
-                        db.save_test_sensor_value(graph_id, 'y%d' % k,
-                                                  np.asscalar(y.flatten()[i]),
-                                                  t)
+                        outputs["y%d" % k].append(y.flatten()[i].item())
+                        db.save_test_sensor_value(
+                            graph_id, "y%d" % k, float(y.flatten()[i].item()), t
+                        )
                 else:
-                    outputs['y'].append(np.asscalar(y))
-                    db.save_test_sensor_value(graph_id, 'y', np.asscalar(y), t)
+                    outputs["y"].append(y.item())
+                    db.save_test_sensor_value(graph_id, "y", float(y.item()), t)
 
-            outputs['t'] = [dt * k for k in outputs['t']]
+            outputs["t"] = [dt * k for k in outputs["t"]]
 
             return json.dumps(outputs)
         except Exception as e:
-            return json.dumps({'error': f'Error in simulation ({str(e)})'})
+            return json.dumps({"error": f"Error in simulation ({str(e)})"})
