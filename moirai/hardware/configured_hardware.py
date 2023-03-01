@@ -40,95 +40,95 @@ from moirai.database import DatabaseV1
 class ConfiguredHardware(object):
     def __init__(self):
         self.db = DatabaseV1()
-        config = self.db.get_setting('hardware_configuration')
+        config = self.db.get_setting("hardware_configuration")
 
         if config is None:
-            raise Exception('No hardware configured')
+            raise Exception("No hardware configured")
 
         ahio.clear_path()
         try:
-            paths = os.environ['AHIO_PATH'].split(os.pathsep)
+            paths = os.environ["AHIO_PATH"].split(os.pathsep)
             for path in paths:
                 if os.path.exists(path):
                     ahio.add_path(os.path.expanduser(path))
         except Exception:
             pass
 
-        self.driver = ahio.new_driver(config['name'])
-        if config['has_setup']:
-            args = {a['name']: a['value'] for a in config['setup_arguments']}
+        self.driver = ahio.new_driver(config["name"])
+        if config["has_setup"]:
+            args = {a["name"]: a["value"] for a in config["setup_arguments"]}
             self.driver.setup(**args)
 
-        self.ports = config['ports']
-        for port in config['ports']:
-            pin = port['name']
-            if hasattr(self.driver, 'Pins'):
+        self.ports = config["ports"]
+        for port in config["ports"]:
+            pin = port["name"]
+            if hasattr(self.driver, "Pins"):
                 pin = self.driver.Pins(pin)
-            self.driver.map_pin(port['id'], pin)
+            self.driver.map_pin(port["id"], pin)
 
-        self.inputs = [p for p in config['ports'] if p['type'] & 4]
-        ps = [p['id'] for p in self.inputs]
+        self.inputs = [p for p in config["ports"] if p["type"] & 4]
+        ps = [p["id"] for p in self.inputs]
         self.inputs = {
-            p['alias']: lambda id=p['id']: self.driver.read(id)
-            for p in self.inputs
+            p["alias"]: lambda id=p["id"]: self.driver.read(id) for p in self.inputs
         }
-        cs = [c for c in config['calibrations'] if c['port'] in ps]
+        cs = [c for c in config["calibrations"] if c["port"] in ps]
         cs = {
-            c['alias']: lambda p=c['port'], f=c['formula']: self.
-            _read_calibrated(p, f)
+            c["alias"]: lambda p=c["port"], f=c["formula"]: self._read_calibrated(p, f)
             for c in cs
         }
         self.inputs = {**self.inputs, **cs}
 
-        self.outputs = [p for p in config['ports'] if p['type'] & (8 | 16)]
-        ps = {p['id']: p['type'] for p in self.outputs}
+        self.outputs = [p for p in config["ports"] if p["type"] & (8 | 16)]
+        ps = {p["id"]: p["type"] for p in self.outputs}
         self.outputs = {
-            p['alias']: lambda x, id=p['id'], t=p['type']: self.driver.write(
-                id, x, (t & 16) != 0)
+            p["alias"]: lambda x, id=p["id"], t=p["type"]: self.driver.write(
+                id, x, (t & 16) != 0
+            )
             for p in self.outputs
         }
-        cs = [c for c in config['calibrations'] if c['port'] in ps.keys()]
+        cs = [c for c in config["calibrations"] if c["port"] in ps.keys()]
         cs = {
-            c['alias']: lambda x, p=c['port'], f=c['formula'], t=ps[c['port']]:
-            self._write_calibrated(p, f, x, (t & 16) != 0)
+            c["alias"]: lambda x, p=c["port"], f=c["formula"], t=ps[
+                c["port"]
+            ]: self._write_calibrated(p, f, x, (t & 16) != 0)
             for c in cs
         }
         self.outputs = {**self.outputs, **cs}
-        for p in config['ports']:
+        for p in config["ports"]:
             direction = ahio.Direction.Input
-            if p['type'] & (8 | 16):
+            if p["type"] & (8 | 16):
                 direction = ahio.Direction.Output
             ptype = ahio.PortType.Digital
-            if p['type'] & 2:
+            if p["type"] & 2:
                 ptype = ahio.PortType.Analog
             try:
-                self.driver.set_pin_type(p['id'], ptype)
+                self.driver.set_pin_type(p["id"], ptype)
             except:  # noqa: E722 pylint: disable=E722
                 pass
             try:
-                self.driver.set_pin_direction(p['id'], direction)
+                self.driver.set_pin_direction(p["id"], direction)
             except:  # noqa: E722 pylint: disable=E722
                 pass
 
     def _read_calibrated(self, port, formula):
-        local = {'x': self.driver.read(port), 'math': math, 'numpy': numpy}
-        code = compile('y=%s' % formula, '_string_', 'exec')
+        local = {"x": self.driver.read(port), "math": math, "numpy": numpy}
+        code = compile("y=%s" % formula, "_string_", "exec")
         exec(code, local, local)
-        return local['y']
+        return local["y"]
 
     def _write_calibrated(self, port, formula, value, pwm):
-        local = {'x': value, 'math': math, 'numpy': numpy}
-        exec('y=%s' % formula, local, local)
-        self.driver.write(port, local['y'], pwm)
+        local = {"x": value, "math": math, "numpy": numpy}
+        exec("y=%s" % formula, local, local)
+        self.driver.write(port, local["y"], pwm)
 
     def read(self, port):
         f = self.inputs.get(port, None)
         if f is None:
-            raise Exception(f'Port {port} not configured')
+            raise Exception(f"Port {port} not configured")
         return f()
 
     def write(self, port, value):
         f = self.outputs.get(port, None)
         if f is None:
-            raise Exception(f'Port {port} not configured')
+            raise Exception(f"Port {port} not configured")
         f(value)

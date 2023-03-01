@@ -38,16 +38,17 @@ from moirai.hardware.timer import Timer, Finished
 class Controller(object):
     def __init__(self, controller_id):
         self.db = DatabaseV1()
-        cs = self.db.get_setting('controllers')
-        self.cs = next((c for c in cs if c['id'] == controller_id), None)
+        cs = self.db.get_setting("controllers")
+        self.cs = next((c for c in cs if c["id"] == controller_id), None)
         if self.cs is None:
-            raise Exception('Controller not found')
+            raise Exception("Controller not found")
         self.hardware = ConfiguredHardware()
-        configuration = self.db.get_setting('hardware_configuration')
-        self.locks = [self.interlock(lo) for lo in configuration['interlocks']]
+        configuration = self.db.get_setting("hardware_configuration")
+        self.locks = [self.interlock(lo) for lo in configuration["interlocks"]]
         self.off_values = {
-            p['alias']: float(p['defaultValue'])
-            for p in configuration['ports'] if p['type'] & (8 | 16)
+            p["alias"]: float(p["defaultValue"])
+            for p in configuration["ports"]
+            if p["type"] & (8 | 16)
         }
         self.running = True
         self.lock = threading.Lock()
@@ -55,41 +56,41 @@ class Controller(object):
 
     def interlock(self, lock):
         try:
-            code = compile('y=%s' % lock['expression'], '_string_', 'exec')
+            code = compile("y=%s" % lock["expression"], "_string_", "exec")
         except SyntaxError as err:
             error = err.__class__.__name__
             detail = err.args[0]
             line = err.lineno
-            scope = 'interlock'
-            error_string = '%s on %s:%s: %s' % (error, scope, line, detail)
+            scope = "interlock"
+            error_string = "%s on %s:%s: %s" % (error, scope, line, detail)
             print(error_string)
-            self.db.set_setting('test_error', error_string)
+            self.db.set_setting("test_error", error_string)
             self.running = False
             return
 
         def f(code=code, lock=lock):
             try:
-                value = self.hardware.read(lock['sensor'])
-                scope = {'x': value}
+                value = self.hardware.read(lock["sensor"])
+                scope = {"x": value}
                 exec(code, None, scope)
             except Exception as err:
                 error = err.__class__.__name__
                 detail = err.args[0]
                 cl, exc, tb = sys.exc_info()
                 tb = self.stringify_tb(traceback.extract_tb(tb))
-                error_string = '%s: %s\n%s' % (error, detail, tb)
+                error_string = "%s: %s\n%s" % (error, detail, tb)
                 print(error_string)
-                self.db.set_setting('test_error', error_string)
-                raise Exception('Interlock')
-            if scope['y']:
-                self.hardware.write(lock['actuator'], lock['actuatorValue'])
-                self.db.set_setting('test_error', 'Interlock')
-                raise Exception('Interlock')
+                self.db.set_setting("test_error", error_string)
+                raise Exception("Interlock")
+            if scope["y"]:
+                self.hardware.write(lock["actuator"], lock["actuatorValue"])
+                self.db.set_setting("test_error", "Interlock")
+                raise Exception("Interlock")
 
         return f
 
     def lock_forever(self):
-        interval = float(self.cs['tau'])
+        interval = float(self.cs["tau"])
         while self.running:
             time.sleep(interval)
             self.lock.acquire()
@@ -100,57 +101,57 @@ class Controller(object):
                 try:
                     self.running = False
                     if self.after is not None:
-                        ins = self.cs['inputs']
+                        ins = self.cs["inputs"]
                         inputs = {s: self.hardware.read(s) for s in ins}
                         plocals = {
-                            'inputs': inputs,
-                            'outputs': dict(),
-                            'np': np,
-                            'math': math
+                            "inputs": inputs,
+                            "outputs": dict(),
+                            "np": np,
+                            "math": math,
                         }
 
                         exec(self.after, plocals, plocals)
 
-                        for actuator, value in plocals['outputs'].items():
+                        for actuator, value in plocals["outputs"].items():
                             self.hardware.write(actuator, value)
                 except Exception as err:
                     error = err.__class__.__name__
                     detail = err.args[0]
                     cl, exc, tb = sys.exc_info()
                     tb = self.stringify_tb(traceback.extract_tb(tb))
-                    error_string = '%s: %s\n%s' % (error, detail, tb)
+                    error_string = "%s: %s\n%s" % (error, detail, tb)
                     print(error_string)
-                    self.db.set_setting('test_error', error_string)
+                    self.db.set_setting("test_error", error_string)
             self.lock.release()
 
     def run(self):
-        self.db.set_setting('current_test', self.cs['name'])
-        self.db.set_setting('test_error', None)
+        self.db.set_setting("current_test", self.cs["name"])
+        self.db.set_setting("test_error", None)
 
         after = None
         self.running = True
 
         try:
-            scope = 'before'
-            before = compile(self.cs['before'], 'before', 'exec')
-            scope = 'controller'
-            controller = compile(self.cs['controller'], 'controller', 'exec')
-            scope = 'after'
-            after = compile(self.cs['after'], 'after', 'exec')
+            scope = "before"
+            before = compile(self.cs["before"], "before", "exec")
+            scope = "controller"
+            controller = compile(self.cs["controller"], "controller", "exec")
+            scope = "after"
+            after = compile(self.cs["after"], "after", "exec")
             self.after = after
 
             thread = threading.Thread(target=self.lock_forever)
             thread.start()
             thread.isDaemon = True
 
-            inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
+            inputs = {s: self.hardware.read(s) for s in self.cs["inputs"]}
             plocals = {
-                'inputs': inputs,
-                'outputs': dict(),
-                's': dict(),
-                'dt': float(self.cs['tau']),
-                'np': np,
-                'math': math
+                "inputs": inputs,
+                "outputs": dict(),
+                "s": dict(),
+                "dt": float(self.cs["tau"]),
+                "np": np,
+                "math": math,
             }
 
             for k, v in self.off_values.items():
@@ -158,52 +159,51 @@ class Controller(object):
 
             exec(before, plocals, plocals)
 
-            state = plocals['s']
+            state = plocals["s"]
 
-            for k, v in plocals['outputs'].items():
+            for k, v in plocals["outputs"].items():
                 self.hardware.write(k, v)
 
-            run_time = int(self.cs['runTime'])
-            interval = float(self.cs['tau'])
+            run_time = int(self.cs["runTime"])
+            interval = float(self.cs["tau"])
             t = Timer(run_time, interval)
             start_time = datetime.datetime.utcnow()
             time = 0
-            graph_id = self.db.save_test(self.cs['name'], start_time)
+            graph_id = self.db.save_test(self.cs["name"], start_time)
 
-            while self.db.get_setting(
-                    'current_test') is not None and self.running:
+            while self.db.get_setting("current_test") is not None and self.running:
                 self.lock.acquire()
-                inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
+                inputs = {s: self.hardware.read(s) for s in self.cs["inputs"]}
                 self.lock.release()
 
                 plocals = {
-                    'inputs': inputs,
-                    'outputs': dict(),
-                    's': state,
-                    'log': dict(),
-                    't': time,
-                    'dt': interval,
-                    'np': np,
-                    'math': math
+                    "inputs": inputs,
+                    "outputs": dict(),
+                    "s": state,
+                    "log": dict(),
+                    "t": time,
+                    "dt": interval,
+                    "np": np,
+                    "math": math,
                 }
 
                 exec(controller, plocals, plocals)
 
-                plocals['log'] = {
-                    **plocals['log'],
-                    **plocals['inputs'],
-                    **plocals['outputs']
+                plocals["log"] = {
+                    **plocals["log"],
+                    **plocals["inputs"],
+                    **plocals["outputs"],
                 }
 
                 self.lock.acquire()
-                for k, v in plocals['outputs'].items():
+                for k, v in plocals["outputs"].items():
                     self.hardware.write(k, v)
 
-                for k, v in plocals['log'].items():
+                for k, v in plocals["log"].items():
                     self.db.save_test_sensor_value(graph_id, k, v, time)
                 self.lock.release()
 
-                state = plocals['s']
+                state = plocals["s"]
 
                 t.sleep()
                 time = t.elapsed()
@@ -213,31 +213,26 @@ class Controller(object):
             error = err.__class__.__name__
             detail = err.args[0]
             line = err.lineno
-            error_string = '%s on %s:%s: %s' % (error, scope, line, detail)
+            error_string = "%s on %s:%s: %s" % (error, scope, line, detail)
             print(error_string)
-            self.db.set_setting('test_error', error_string)
+            self.db.set_setting("test_error", error_string)
         except Exception as err:
             error = err.__class__.__name__
             detail = err.args[0]
             cl, exc, tb = sys.exc_info()
             tb = self.stringify_tb(traceback.extract_tb(tb))
-            error_string = '%s: %s\n%s' % (error, detail, tb)
+            error_string = "%s: %s\n%s" % (error, detail, tb)
             print(error_string)
-            self.db.set_setting('test_error', error_string)
+            self.db.set_setting("test_error", error_string)
 
         try:
             if after is not None:
-                inputs = {s: self.hardware.read(s) for s in self.cs['inputs']}
-                plocals = {
-                    'inputs': inputs,
-                    'outputs': dict(),
-                    'np': np,
-                    'math': math
-                }
+                inputs = {s: self.hardware.read(s) for s in self.cs["inputs"]}
+                plocals = {"inputs": inputs, "outputs": dict(), "np": np, "math": math}
 
                 exec(after, plocals, plocals)
 
-                for actuator, value in plocals['outputs'].items():
+                for actuator, value in plocals["outputs"].items():
                     self.hardware.write(actuator, value)
 
             for k, v in self.off_values.items():
@@ -247,16 +242,15 @@ class Controller(object):
             detail = err.args[0]
             cl, exc, tb = sys.exc_info()
             tb = self.stringify_tb(traceback.extract_tb(tb))
-            error_string = '%s: %s\n%s' % (error, detail, tb)
+            error_string = "%s: %s\n%s" % (error, detail, tb)
             print(error_string)
-            self.db.set_setting('test_error', error_string)
+            self.db.set_setting("test_error", error_string)
 
-        self.db.set_setting('current_test', None)
+        self.db.set_setting("current_test", None)
         self.db.close()
         self.running = False
 
     def stringify_tb(self, tb):
-        msg = 'Traceback:\n\t'
-        msg += '\n\t'.join(
-            ['%s:%s in %s' % (t.filename, t.lineno, t.name) for t in tb])
+        msg = "Traceback:\n\t"
+        msg += "\n\t".join(["%s:%s in %s" % (t.filename, t.lineno, t.name) for t in tb])
         return msg

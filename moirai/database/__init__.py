@@ -30,33 +30,36 @@ __printed = False
 def DatabaseV1():
     global __printed
     try:
-        config_dir = str(Path.home() / '.config')
-        xdg_config = os.environ.get('XDG_CONFIG_HOME', config_dir)
-        config_file = str(Path(xdg_config) / 'moirai' / 'config.json')
+        config_dir = str(Path.home() / ".config")
+        xdg_config = os.environ.get("XDG_CONFIG_HOME", config_dir)
+        config_file = str(Path(xdg_config) / "moirai" / "config.json")
         with open(config_file) as f:
             cfgstr = f.read()
             if cfgstr:
                 cfg = json.loads(cfgstr)
-                db = cfg.get('database', None)
+                db = cfg.get("database", None)
                 if db:
-                    adapter = db.get('adapter', 'mongodb')
-                    host = db.get('host', '127.0.0.1')
-                    port = db.get('port', 3306)
-                    username = db.get('username', None)
-                    password = db.get('password', None)
-                    if adapter == 'mongodb':
+                    adapter = db.get("adapter", "mongodb")
+                    host = db.get("host", "127.0.0.1")
+                    port = db.get("port", 3306)
+                    username = db.get("username", None)
+                    password = db.get("password", None)
+                    if adapter == "mongodb":
                         if not __printed:
-                            print('Using MongoDB')
+                            print("Using MongoDB")
                             __printed = True
                         from moirai.database.mongodb import DatabaseV1
+
                         return DatabaseV1()
                     else:
                         if not __printed:
-                            print('Using MySQL')
+                            print("Using MySQL")
                             __printed = True
                         from moirai.database.mysql import DatabaseV1
+
                         return DatabaseV1(host, port, username, password)
     except Exception:
-        print('Falling back to MongoDB...')
+        print("Falling back to MongoDB...")
         from moirai.database.mongodb import DatabaseV1
+
         return DatabaseV1()

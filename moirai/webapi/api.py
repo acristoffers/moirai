@@ -662,7 +662,6 @@ class APIv1:
             mimetype="application/octet-stream",
         )
 
-
     def controller_set(self):
         """
         Saves a controller. It must be a POST request with following body:

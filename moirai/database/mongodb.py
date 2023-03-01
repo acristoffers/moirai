@@ -40,7 +40,7 @@ class DatabaseV1(object):
         self.token_lifespan = 24 * 3600
         self.__migrate()
         self.__create_indexes()
-        self.set_setting('version', '1.0')
+        self.set_setting("version", "1.0")
 
     def close(self):
         self.client.close()
@@ -53,122 +53,90 @@ class DatabaseV1(object):
         db = self.db.settings
         document = db.find_one({"key": key})
         if document:
-            return document['value']
+            return document["value"]
         else:
             return None
 
     def verify_token(self, token):
         now = int(time.time())
         span = self.token_lifespan
-        ts = self.get_setting('tokens')
-        vs = [t for t in ts if t['token'] == token and now - t['time'] < span]
+        ts = self.get_setting("tokens")
+        vs = [t for t in ts if t["token"] == token and now - t["time"] < span]
         if vs:
-            ts = [t for t in ts if t['token'] != token]
-            ts.append({'token': token, 'time': now})
-            ts = [t for t in ts if now - t['time'] < span]
-            self.set_setting('tokens', ts)
+            ts = [t for t in ts if t["token"] != token]
+            ts.append({"token": token, "time": now})
+            ts = [t for t in ts if now - t["time"] < span]
+            self.set_setting("tokens", ts)
             return True
         return False
 
     def generate_token(self):
-        t = {'token': uuid.uuid4().hex, 'time': time.time()}
-        ts = self.get_setting('tokens') or []
+        t = {"token": uuid.uuid4().hex, "time": time.time()}
+        ts = self.get_setting("tokens") or []
         ts += [t]
-        ts = [t for t in ts if time.time() - t['time'] < self.token_lifespan]
-        self.set_setting('tokens', ts)
-        return t['token']
+        ts = [t for t in ts if time.time() - t["time"] < self.token_lifespan]
+        self.set_setting("tokens", ts)
+        return t["token"]
 
     def save_test(self, name, date):
-        graph = {'name': name, 'date': date}
+        graph = {"name": name, "date": date}
         self.db.graphs.insert_one(graph)
-        return graph['_id']
+        return graph["_id"]
 
     def save_test_sensor_value(self, graph_id, sensor, value, time):
         value = value if isinstance(value, int) else float(value)
-        data = {
-            'sensor': sensor,
-            'value': value,
-            'time': time,
-            'graph': graph_id
-        }
+        data = {"sensor": sensor, "value": value, "time": time, "graph": graph_id}
         self.db.graphs_data.insert_one(data)
 
     def list_test_data(self):
         cursor = self.db.graphs.find()
-        tests = [{'name': t['name'], 'date': t['date']} for t in cursor]
+        tests = [{"name": t["name"], "date": t["date"]} for t in cursor]
         return tests
 
     def get_test_data(self, test, start_time, skip=0):
-        oid = self.db.graphs.find_one({
-            'name': test,
-            'date': start_time
-        })['_id']
-        cursor = self.db.graphs_data.aggregate([{
-            '$match': {
-                'graph': oid
-            }
-        }, {
-            '$sort': {
-                'time': 1
-            }
-        }, {
-            '$skip': skip
-        }, {
-            '$project': {
-                'sensor': 1,
-                'time': 1,
-                'value': 1,
-                '_id': 0
-            }
-        }])
+        oid = self.db.graphs.find_one({"name": test, "date": start_time})["_id"]
+        cursor = self.db.graphs_data.aggregate(
+            [
+                {"$match": {"graph": oid}},
+                {"$sort": {"time": 1}},
+                {"$skip": skip},
+                {"$project": {"sensor": 1, "time": 1, "value": 1, "_id": 0}},
+            ]
+        )
         return list(cursor)
 
     def get_filtered_test_data(self, test, start_time, sensors):
-        oid = self.db.graphs.find_one({
-            'name': test,
-            'date': start_time
-        })['_id']
-        match = {'$match': {'graph': oid, 'sensor': {'$in': sensors}}}
-        sort = {'$sort': {'time': 1}}
+        oid = self.db.graphs.find_one({"name": test, "date": start_time})["_id"]
+        match = {"$match": {"graph": oid, "sensor": {"$in": sensors}}}
+        sort = {"$sort": {"time": 1}}
         group = {
-            '$group': {
-                '_id': '$sensor',
-                'values': {
-                    '$push': '$value'
-                },
-                'time': {
-                    '$push': '$time'
-                }
+            "$group": {
+                "_id": "$sensor",
+                "values": {"$push": "$value"},
+                "time": {"$push": "$time"},
             }
         }
-        project = {
-            '$project': {
-                'time': 1,
-                'sensor': '$_id',
-                'values': 1,
-                '_id': 0
-            }
-        }
+        project = {"$project": {"time": 1, "sensor": "$_id", "values": 1, "_id": 0}}
         cursor = self.db.graphs_data.aggregate([match, sort, group, project])
         return list(cursor)
 
     def remove_test(self, test):
         tests = test if isinstance(test, list) else [test]
         for test in tests:
-            oid = self.db.graphs.find_one(test)['_id']
-            self.db.graphs.delete_one({'_id': oid})
-            self.db.graphs_data.delete_many({'graph': oid})
+            oid = self.db.graphs.find_one(test)["_id"]
+            self.db.graphs.delete_one({"_id": oid})
+            self.db.graphs_data.delete_many({"graph": oid})
 
     def dump_database(self):
         graphs = list(self.db.graphs.find())
         for graph in graphs:
-            graph['data'] = []
-            for point in self.db.graphs_data.find({'graph': graph['_id']}):
-                del point['_id']
-                del point['graph']
-                graph['data'].append(point)
-            del graph['_id']
-        settings = self.db.settings.find({}, {'_id': 0})
+            graph["data"] = []
+            for point in self.db.graphs_data.find({"graph": graph["_id"]}):
+                del point["_id"]
+                del point["graph"]
+                graph["data"].append(point)
+            del graph["_id"]
+        settings = self.db.settings.find({}, {"_id": 0})
         return list(settings), list(graphs)
 
     def restore_database_v2(self, settings, graphs):
@@ -177,12 +145,12 @@ class DatabaseV1(object):
         self.db.graphs_data.drop()
         self.db.settings.insert_many(settings)
         for graph in graphs:
-            g = {'name': graph['name'], 'date': graph['date']}
+            g = {"name": graph["name"], "date": graph["date"]}
             self.db.graphs.insert_one(g)
-            for point in graph['data']:
-                point['graph'] = g['_id']
-            self.db.graphs_data.insert_many(graph['data'])
-        self.set_setting('version', '1.0')
+            for point in graph["data"]:
+                point["graph"] = g["_id"]
+            self.db.graphs_data.insert_many(graph["data"])
+        self.set_setting("version", "1.0")
 
     def restore_database_v1(self, settings, test_sensor_values):
         self.db.settings.drop()
@@ -193,51 +161,35 @@ class DatabaseV1(object):
         self.__migrate()
 
     def __create_indexes(self):
-        self.db.graphs_data.create_index('time', name='time')
-        self.db.graphs_data.create_index('graph', name='graph')
+        self.db.graphs_data.create_index("time", name="time")
+        self.db.graphs_data.create_index("graph", name="graph")
 
     def __migrate(self):
-        if self.get_setting('version') is None:
-            match = {'$match': {'time': {'$lt': 1}}}
-            group = {
-                '$group': {
-                    '_id': {
-                        'name': '$test',
-                        'date': '$start_time'
-                    }
-                }
-            }
-            project = {
-                '$project': {
-                    '_id': 0,
-                    'name': '$_id.name',
-                    'date': '$_id.date'
-                }
-            }
+        if self.get_setting("version") is None:
+            match = {"$match": {"time": {"$lt": 1}}}
+            group = {"$group": {"_id": {"name": "$test", "date": "$start_time"}}}
+            project = {"$project": {"_id": 0, "name": "$_id.name", "date": "$_id.date"}}
             query = [match, group, project]
             cursor = self.db.test_sensor_values.aggregate(query)
             tests = list(cursor)
             if tests:
                 self.db.graphs.insert_many(tests)
                 for test in tests:
-                    oid = test['_id']
+                    oid = test["_id"]
                     match = {
-                        '$match': {
-                            'test': test['name'],
-                            'start_time': test['date']
-                        }
+                        "$match": {"test": test["name"], "start_time": test["date"]}
                     }
                     project = {
-                        '$project': {
-                            '_id': 0,
-                            'time': 1,
-                            'sensor': 1,
-                            'value': 1,
-                            'graph': oid
+                        "$project": {
+                            "_id": 0,
+                            "time": 1,
+                            "sensor": 1,
+                            "value": 1,
+                            "graph": oid,
                         }
                     }
                     query = [match, project]
                     cursor = self.db.test_sensor_values.aggregate(query)
                     self.db.graphs_data.insert_many(cursor)
                 self.db.test_sensor_values.drop()
-                self.set_setting('version', '1.0')
+                self.set_setting("version", "1.0")

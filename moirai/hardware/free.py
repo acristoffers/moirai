@@ -60,45 +60,49 @@ class Free(object):
             if data:
                 self.last_run = time.time()
                 self.running = True
-                self.timer.interval = float(data['dt'])
-                self.inputs = data['inputs']
+                self.timer.interval = float(data["dt"])
+                self.inputs = data["inputs"]
                 self.outputs = [
-                    out for out in data['outputs'] if len(out['alias']) != 0
+                    out for out in data["outputs"] if len(out["alias"]) != 0
                 ]
-                config = self.db.get_setting('hardware_configuration')
-                self.locks = list(map(self.interlock, config['interlocks']))
+                config = self.db.get_setting("hardware_configuration")
+                self.locks = list(map(self.interlock, config["interlocks"]))
 
             if not self.is_valid():
                 self.running = False
 
             if self.running:
                 if not self.hardware:
-                    self.db.set_setting('test_error', '')
-                    self.timer = Timer(math.inf, float(data['dt']))
+                    self.db.set_setting("test_error", "")
+                    self.timer = Timer(math.inf, float(data["dt"]))
                     self.start_time = datetime.datetime.utcnow()
                     self.hardware = ConfiguredHardware()
                     self.last_run = time.time()
-                    self.graph_id = self.db.save_test('Free', self.start_time)
+                    self.graph_id = self.db.save_test("Free", self.start_time)
 
                     for output in self.outputs:
-                        self.db.save_test_sensor_value(self.graph_id,
-                                                       output['alias'], 0, 0)
+                        self.db.save_test_sensor_value(
+                            self.graph_id, output["alias"], 0, 0
+                        )
                     for input in self.inputs:
-                        self.db.save_test_sensor_value(self.graph_id, input, 0,
-                                                       0)
+                        self.db.save_test_sensor_value(self.graph_id, input, 0, 0)
 
                 self.timer.sleep()
 
                 for output in self.outputs:
-                    self.hardware.write(output['alias'], output['value'])
+                    self.hardware.write(output["alias"], output["value"])
                     self.db.save_test_sensor_value(
-                        self.graph_id, output['alias'], output['value'],
-                        self.timer.elapsed())
+                        self.graph_id,
+                        output["alias"],
+                        output["value"],
+                        self.timer.elapsed(),
+                    )
 
                 for input in self.inputs:
                     value = self.hardware.read(input)
-                    self.db.save_test_sensor_value(self.graph_id, input, value,
-                                                   self.timer.elapsed())
+                    self.db.save_test_sensor_value(
+                        self.graph_id, input, value, self.timer.elapsed()
+                    )
 
                 for lock in self.locks:
                     lock()
@@ -112,8 +116,9 @@ class Free(object):
     def shutdown(self):
         if self.hardware:
             self.off_values = {
-                p['alias']: float(p['defaultValue'])
-                for p in self.hardware.ports if p['type'] & (8 | 16)
+                p["alias"]: float(p["defaultValue"])
+                for p in self.hardware.ports
+                if p["type"] & (8 | 16)
             }
             for k, v in self.off_values.items():
                 self.hardware.write(k, v)
@@ -121,40 +126,39 @@ class Free(object):
 
     def interlock(self, lock):
         try:
-            code = compile('y=%s' % lock['expression'], '_string_', 'exec')
+            code = compile("y=%s" % lock["expression"], "_string_", "exec")
         except SyntaxError as err:
             error = err.__class__.__name__
             detail = err.args[0]
             line = err.lineno
-            error_string = '%s on %s:%s: %s' % (error, 'pid', line, detail)
+            error_string = "%s on %s:%s: %s" % (error, "pid", line, detail)
             print(error_string)
-            self.db.set_setting('test_error', error_string)
+            self.db.set_setting("test_error", error_string)
             self.running = False
             return
 
         def f(code=code, lock=lock):
             try:
-                value = self.hardware.read(lock['sensor'])
-                scope = {'x': value}
+                value = self.hardware.read(lock["sensor"])
+                scope = {"x": value}
                 exec(code, None, scope)
             except Exception as err:
                 error = err.__class__.__name__
                 detail = err.args[0]
                 cl, exc, tb = sys.exc_info()
                 tb = self.stringify_tb(traceback.extract_tb(tb))
-                error_string = '%s: %s\n%s' % (error, detail, tb)
+                error_string = "%s: %s\n%s" % (error, detail, tb)
                 print(error_string)
-                self.db.set_setting('test_error', error_string)
-                raise Exception('Interlock')
-            if scope['y']:
-                self.hardware.write(lock['actuator'], lock['actuatorValue'])
-                self.db.set_setting('test_error', 'Interlock')
-                raise Exception('Interlock')
+                self.db.set_setting("test_error", error_string)
+                raise Exception("Interlock")
+            if scope["y"]:
+                self.hardware.write(lock["actuator"], lock["actuatorValue"])
+                self.db.set_setting("test_error", "Interlock")
+                raise Exception("Interlock")
 
         return f
 
     def stringify_tb(self, tb):
-        msg = 'Traceback:\n\t'
-        msg += '\n\t'.join(
-            ['%s:%s in %s' % (t.filename, t.lineno, t.name) for t in tb])
+        msg = "Traceback:\n\t"
+        msg += "\n\t".join(["%s:%s in %s" % (t.filename, t.lineno, t.name) for t in tb])
         return msg

@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-'''
+"""
 Decorators used by the moirai server to control logging and exception handling.
-'''
+"""
 
 import errno
 import inspect
@@ -35,18 +35,17 @@ import appdirs
 import moirai
 
 LOG_DIR = appdirs.user_log_dir(
-    appname=moirai.__name__,
-    appauthor=moirai.__author__,
-    version=moirai.__version__)
+    appname=moirai.__name__, appauthor=moirai.__author__, version=moirai.__version__
+)
 os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = open(os.path.join(LOG_DIR, 'moirai.log'), 'at')
+LOG_FILE = open(os.path.join(LOG_DIR, "moirai.log"), "at")
 
 
 def log_file_path():
     """
     Returns the path of the log file.
     """
-    return os.path.join(LOG_DIR, 'moirai.log')
+    return os.path.join(LOG_DIR, "moirai.log")
 
 
 def decorate_all_methods(decorator):
@@ -89,7 +88,7 @@ def log_msg(msg):
     """
     Logs `msg` to log file.
     """
-    msg = '%s: %s\n' % (time.ctime(), msg)
+    msg = "%s: %s\n" % (time.ctime(), msg)
     LOG_FILE.write(msg)
     LOG_FILE.flush()
 
@@ -104,19 +103,19 @@ def log(func):
         Logs every call to a class method.
         """
         func_name = []
-        if func.__module__ != '__main__':
+        if func.__module__ != "__main__":
             func_name.append(func.__module__)
         func_name.append(func.__qualname__)
-        func_name = '.'.join(func_name)
+        func_name = ".".join(func_name)
 
         args = []
         if kargs:
             args = [str(arg) for arg in kargs]
         if kwargs:
-            args += ['%s=%s' % i for i in kwargs.items()]
-        args = ', '.join(args)
+            args += ["%s=%s" % i for i in kwargs.items()]
+        args = ", ".join(args)
 
-        log_str = '%s(%s)' % (func_name, args)
+        log_str = "%s(%s)" % (func_name, args)
         log_msg(log_str)
         return func(*kargs, **kwargs)
 
@@ -135,7 +134,7 @@ def dont_raise(func):
         try:
             return func(*kargs, **kwargs)
         except Exception as error:
-            log_msg('An Exception occurred: %s' % error)
-            print('An Exception occurred: %s' % error)
+            log_msg("An Exception occurred: %s" % error)
+            print("An Exception occurred: %s" % error)
 
     return decorate

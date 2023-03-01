@@ -145,7 +145,7 @@ def start():
         return
 
     if "--help" in sys.argv:
-        print(fr"Moirai {__version__}")
+        print(rf"Moirai {__version__}")
         print(r"Options:")
         print("\t--version Prints version.")
         print("\t--install Tries to install dependencies.")
@@ -200,7 +200,9 @@ def start():
             new_config = {"database": opts}
             config_dir = str(Path.home() / ".config")
             xdg_config = os.environ.get("XDG_CONFIG_HOME", config_dir)
-            config_file = str(Path(xdg_config) / "moirai" / "config.json")
+            config_dir = Path(xdg_config) / "moirai"
+            config_dir.mkdir(parents=True, exist_ok=True)
+            config_file = str(config_dir / "config.json")
             with open(config_file, "a+") as f:
                 f.seek(0)
                 cfg = json.loads(f.read() or "{}")

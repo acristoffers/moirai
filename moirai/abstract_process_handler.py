@@ -34,13 +34,13 @@ class AbstractProcessHandler:
     """
 
     def __init__(self, name, pipe):
-        print('Starting %s...' % name)
+        print("Starting %s..." % name)
         self._last_message = time.time() + 60
         self._pipes = {}
         self._pname = name  # Printable name
         self.sleep = True
         self.quitting = False
-        self.set_pipe('parent', pipe)
+        self.set_pipe("parent", pipe)
 
     def set_sleep(self, sleep):
         """
@@ -92,7 +92,7 @@ class AbstractProcessHandler:
             return (None, None)
         except EOFError:
             sname = self._pname
-            print('Communication between %s and %s is closed!' % (name, sname))
+            print("Communication between %s and %s is closed!" % (name, sname))
             del self._pipes[name]
             return (None, None)
 
@@ -111,22 +111,22 @@ class AbstractProcessHandler:
 
     def _process_command(self, name):
         cmd, args = self.read_pipe(name)
-        if cmd == 'quit':
+        if cmd == "quit":
             self.quitting = True
-            self.send_command(name, 'ok', None)
-            return 'quit'
-        if cmd == 'close':
+            self.send_command(name, "ok", None)
+            return "quit"
+        if cmd == "close":
             pipe = self.pipe_for(name)
-            pipe.send(('ok', None))
+            pipe.send(("ok", None))
             self.set_pipe(name, None)
             if not self.pipes():
-                return 'quit'
-        if cmd == 'connect':
-            print('Connected %s to %s' % (args[0], self._pname))
+                return "quit"
+        if cmd == "connect":
+            print("Connected %s to %s" % (args[0], self._pname))
             self.set_pipe(*args)
-            self.send_command(name, 'ok', None)
-        if cmd == 'alive':
-            self.send_command(name, 'alive', None)
+            self.send_command(name, "ok", None)
+        if cmd == "alive":
+            self.send_command(name, "alive", None)
         else:
             self.process_command(name, cmd, args)
         return None
@@ -135,13 +135,12 @@ class AbstractProcessHandler:
         """
         Ask the main process for a pipe with process `pkg_to`.
         """
-        self.send_command('parent', 'connect', (pkg_from, pkg_to))
-        answer, pipe = self.read_pipe('parent', blocking=True)
-        if answer == 'ok':
+        self.send_command("parent", "connect", (pkg_from, pkg_to))
+        answer, pipe = self.read_pipe("parent", blocking=True)
+        if answer == "ok":
             self.set_pipe(pkg_to, pipe)
         else:
-            raise RuntimeError(
-                'Can not connect %s with %s' % (pkg_from, pkg_to))
+            raise RuntimeError("Can not connect %s with %s" % (pkg_from, pkg_to))
 
     def loop(self):
         """
@@ -158,8 +157,8 @@ class AbstractProcessHandler:
                 time.sleep(0.5)
             for name in self.pipes():
                 result = self._process_command(name)
-                if result == 'quit':
-                    print('Shutting down %s...' % self._pname)
+                if result == "quit":
+                    print("Shutting down %s..." % self._pname)
                     self.quit()
                     for name2 in self.pipes():
                         self.set_pipe(name2, None)
