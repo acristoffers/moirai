@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "moirai"
-version = "1.3.27"
+version = "1.3.28"
 description = "Digital Control Manager Backend"
 authors = ["Álan Crístoffer <acristoffers@startmail.com>"]
 license = "MIT"
