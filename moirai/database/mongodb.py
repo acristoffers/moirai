@@ -84,7 +84,9 @@ class DatabaseV1(object):
         return graph["_id"]
 
     def save_test_sensor_value(self, graph_id, sensor, value, time):
-        if not isinstance(value, bool) and not isinstance(value, int):
+        if isinstance(value, bool):
+            value = int(value)
+        elif not isinstance(value, int):
             value = float(value)
         data = {"sensor": sensor, "value": value, "time": time, "graph": graph_id}
         self.db.graphs_data.insert_one(data)

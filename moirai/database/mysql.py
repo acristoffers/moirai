@@ -112,7 +112,10 @@ class DatabaseV1(object):
         query = """INSERT INTO `moirai`.`graphs_data`
                         (`sensor`, `value`, `time`, `graph`)
                         VALUES (%s, %s, %s, %s)"""
-        value = value if isinstance(value, int) else float(value)
+        if isinstance(value, bool):
+            value = int(value)
+        elif not isinstance(value, int):
+            value = float(value)
         cur.execute(query, (sensor, value, time, graph_id))
         cur.close()
         cnx.close()
