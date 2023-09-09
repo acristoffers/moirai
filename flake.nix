@@ -3,7 +3,10 @@
   inputs = {
     flake-utils.url = github:numtide/flake-utils;
     nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
+
     ahio.url = github:acristoffers/ahio;
+    ahio.inputs.nixpkgs.follows = "nixpkgs";
+    ahio.inputs.flake-utils.follows = "flake-utils";
   };
   outputs = { self, nixpkgs, flake-utils, ahio }:
     flake-utils.lib.eachDefaultSystem (system:
