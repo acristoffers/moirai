@@ -32,5 +32,9 @@
           ];
         };
         packages.default = moirai pkgs.python311Packages;
+        apps = rec {
+          moirai = { type = "app"; program = "${packages.default}/bin/moirai"; };
+          default = moirai;
+        };
       });
 }
