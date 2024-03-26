@@ -1,10 +1,10 @@
 {
   description = "I/O Communication Library";
   inputs = {
-    flake-utils.url = github:numtide/flake-utils;
-    nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
+    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    ahio.url = github:acristoffers/ahio;
+    ahio.url = "github:acristoffers/ahio";
     ahio.inputs.nixpkgs.follows = "nixpkgs";
     ahio.inputs.flake-utils.follows = "flake-utils";
   };
@@ -14,7 +14,7 @@
         pkgs = import nixpkgs { inherit system; };
       in
       rec {
-        moirai = pythonPkgs: pythonPkgs.buildPythonPackage rec {
+        moirai = pythonPkgs: pythonPkgs.buildPythonPackage {
           format = "pyproject";
           name = "moirai";
           src = ./.;
