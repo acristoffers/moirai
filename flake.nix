@@ -23,9 +23,9 @@
             appdirs
             cheroot
             flask
+            hatchling
             mysql-connector
             numpy
-            poetry-core
             pymongo
             python-dateutil
             scipy
