@@ -97,7 +97,7 @@ class ModelSimulation(object):
                     outputs["x%d" % (i + 1)] = []
 
             db = DatabaseV1()
-            start_time = datetime.datetime.utcnow()
+            start_time = datetime.datetime.now(datetime.timezone.utc)
             graph_id = db.save_test("Simulation", start_time)
 
             for k in self.T:

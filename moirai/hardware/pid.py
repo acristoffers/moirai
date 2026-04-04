@@ -56,8 +56,7 @@ class PID(object):
         self.fixedOutputs = []
         self.hardware = None
         self.db = DatabaseV1()
-        self.start_time = datetime.datetime.utcnow()
-        self.locks = []
+        self.start_time = datetime.datetime.now(datetime.timezone.utc)
         self.graph_id = None
 
     def is_valid(self):
@@ -90,7 +89,7 @@ class PID(object):
                 if not self.hardware:
                     self.db.set_setting("test_error", "")
                     self.timer = Timer(math.inf, float(data["dt"]))
-                    self.start_time = datetime.datetime.utcnow()
+                    self.start_time = datetime.datetime.now(datetime.timezone.utc)
                     self.hardware = ConfiguredHardware()
                     self.last_run = time.time()
                     self.graph_id = self.db.save_test("PID", self.start_time)

@@ -60,7 +60,7 @@ class DatabaseV1(object):
     def verify_token(self, token):
         now = int(time.time())
         span = self.token_lifespan
-        ts = self.get_setting("tokens")
+        ts = self.get_setting("tokens") or []
         vs = [t for t in ts if t["token"] == token and now - t["time"] < span]
         if vs:
             ts = [t for t in ts if t["token"] != token]
