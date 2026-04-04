@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist
+build
+flake.nix
+flake.lock
+CONTRIBUTING.md
+CHANGELOG.md
